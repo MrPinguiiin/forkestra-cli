@@ -1,0 +1,28 @@
+// Better-T-Stack project metadata
+//
+// Keep this file to use the `add` command.
+// Add addons: bunx create-better-t-stack@latest add
+//
+// Docs: https://better-t-stack.dev/docs
+// Stack Builder: https://better-t-stack.dev/new
+
+{
+  "$schema": "https://r2.better-t-stack.dev/schema.json",
+  "version": "3.40.5",
+  "createdAt": "2026-08-27T10:05:55.294Z",
+  "reproducibleCommand": "bun create better-t-stack@latest forkestra-cli --frontend none --backend hono --runtime bun --api trpc --database sqlite --orm drizzle --db-setup turso --auth none --payments none --package-manager bun --addons opentui biome turborepo --web-deploy none --server-deploy none --examples none --git --install",
+  "database": "sqlite",
+  "orm": "drizzle",
+  "backend": "hono",
+  "runtime": "bun",
+  "frontend": [],
+  "addons": ["opentui", "biome", "turborepo"],
+  "examples": [],
+  "auth": "none",
+  "payments": "none",
+  "packageManager": "bun",
+  "dbSetup": "turso",
+  "api": "trpc",
+  "webDeploy": "none",
+  "serverDeploy": "none",
+}

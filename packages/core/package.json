@@ -1,0 +1,24 @@
+{
+  "name": "@forkestra-cli/core",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b"
+  },
+  "dependencies": {
+    "unified": "^11.0.5",
+    "remark-parse": "^11.0.0"
+  },
+  "devDependencies": {
+    "@forkestra-cli/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
