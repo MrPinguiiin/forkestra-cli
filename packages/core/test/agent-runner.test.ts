@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { commandFor } from "../src/agent-runner";
+import { listModelsForAgent } from "../src/models";
 import type { PlannedTask } from "../src/types";
 
 const baseTask: PlannedTask = {
@@ -34,5 +35,11 @@ describe("agent runner commands", () => {
       cmd: "opencode",
       args: ["run", "--agent", "backend-agent", "-m", "provider/model", "prompt"],
     });
+  });
+});
+
+describe("model discovery", () => {
+  test("uses a stable fallback for static tool model lists", async () => {
+    expect(await listModelsForAgent("claude-code")).toEqual({ models: ["claude-sonnet-4"] });
   });
 });

@@ -13,7 +13,7 @@ export async function detectProjectChecks(cwd: string, includeBuild = false): Pr
 
 export async function runProjectCheck(command: string, cwd: string): Promise<ProjectCheck> {
   const started = Date.now();
-  const process = Bun.spawn(command.split(" "), { cwd, stdout: "pipe", stderr: "pipe" });
+  const process = Bun.spawn(command.trim().split(/\s+/), { cwd, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),
     new Response(process.stderr).text(),

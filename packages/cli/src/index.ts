@@ -6,7 +6,10 @@ import {
   listModelsForAgent,
   loadSpec,
   planTasks,
+  listWorktrees,
+  removeWorktree,
   runProjectCheck,
+  formatStatusSnapshot,
   runScheduledTasks,
   validateAgentTools,
   validatePreset,
@@ -134,6 +137,14 @@ config.command("presets").action(async () => {
   console.log(defaultPreset.name);
   for (const preset of await db.select({ name: agentPreset.name }).from(agentPreset)) console.log(preset.name);
 });
+config.command("worktrees").option("--repo <path>", "Target repository path", process.cwd()).action(async (options) => {
+  for (const item of await listWorktrees(options.repo)) console.log(`${item.path} ${item.branch ?? "detached"} ${item.head}`);
+});
+config.command("remove-worktree").argument("<path>").option("--repo <path>", "Target repository path", process.cwd()).option("--yes", "Skip confirmation").action(async (path, options) => {
+  if (!options.yes) throw new Error("Pass --yes to explicitly remove a worktree");
+  await removeWorktree(path, options.repo);
+  console.log(`worktree removed: ${path}`);
+});
 config.command("preset").argument("<name>").option("--set <json>").action(async (name, options) => {
   const [{ db }, { agentPreset }, { eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
   if (!options.set) { console.log(JSON.stringify(await loadPreset(name), null, 2)); return; }
@@ -152,12 +163,26 @@ program.command("status").description("Show recent runs and tasks").action(async
   }
 });
 
-program.command("tui").description("Start the OpenTUI status interface").action(async () => {
-  const [{ db }, { run, task }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
+program.command("tui").description("Start the OpenTUI status interface").option("--refresh <ms>", "Refresh interval", "1000").action(async (options) => {
+  const [{ db }, { run, task, taskLog }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
   const [latest] = await db.select().from(run).orderBy(desc(run.createdAt)).limit(1);
   if (!latest) { console.log("No runs available"); return; }
-  console.log(`run ${latest.id} ${latest.status}`);
-  for (const item of await db.select().from(task).where(eq(task.runId, latest.id))) console.log(`[${item.status}] ${item.title} (${item.agent}:${item.model})`);
+  let selectedTaskId: string | undefined;
+  let running = true;
+  const stop = () => { running = false; };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+  while (running) {
+    const tasks = await db.select().from(task).where(eq(task.runId, latest.id));
+    selectedTaskId = selectedTaskId && tasks.some((item) => item.id === selectedTaskId) ? selectedTaskId : tasks[0]?.id;
+    const logs = selectedTaskId ? await db.select().from(taskLog).where(eq(taskLog.taskId, selectedTaskId)).limit(20) : [];
+    process.stdout.write("\\x1b[2J\\x1b[H");
+    console.log(formatStatusSnapshot({ runId: latest.id, runStatus: latest.status, selectedTaskId, tasks, logs: logs.map((item) => `[${item.stream}] ${item.content}`) }));
+    if (!running) break;
+    await Bun.sleep(Math.max(100, Number(options.refresh)));
+  }
+  process.removeListener("SIGINT", stop);
+  process.removeListener("SIGTERM", stop);
 });
 
 program.parseAsync().catch((error: unknown) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });

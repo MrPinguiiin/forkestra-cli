@@ -15,10 +15,15 @@ const binaries: Record<AgentTool, string> = {
 
 export async function listModelsForAgent(agent: AgentTool): Promise<{ models: string[]; warning?: string }> {
   if (agent !== "opencode") return { models: fallbackModels[agent] };
-  const process = Bun.spawn([binaries[agent], "models"], { stdout: "pipe", stderr: "pipe" });
+  let process: Bun.Subprocess;
+  try {
+    process = Bun.spawn([binaries[agent], "models"], { stdout: "pipe", stderr: "pipe" });
+  } catch (error) {
+    return { models: fallbackModels[agent], warning: error instanceof Error ? error.message : String(error) };
+  }
   const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
+    new Response(process.stdout instanceof ReadableStream ? process.stdout : null).text(),
+    new Response(process.stderr instanceof ReadableStream ? process.stderr : null).text(),
     process.exited,
   ]);
   if (exitCode !== 0) {

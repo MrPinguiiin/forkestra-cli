@@ -13,7 +13,7 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 
 | Date | Phase | Summary | Owner |
 |---|---|---|---|
-| 2026-08-30 | Phase 0–11 | Implemented parser hardening, deterministic planning, presets, model discovery, scheduler controls, runner timeout handling, project checks, API read queries, and CLI config commands. TUI and tests remain partial. | opencode |
+| 2026-08-30 | Phase 0–13 | Added worktree listing/removal, collision validation, retry classification, model fallback handling, project-check tests, runner command tests, scheduler retry tests, and deterministic worktree tests. Interactive TUI, PR creation, and some integration tests remain pending. | opencode |
 
 ## Global Definition of Done
 
@@ -219,12 +219,12 @@ File utama: `packages/core/src/git-worktree.ts`, `packages/core/src/scheduler.ts
 - [x] Tambahkan validasi target repository adalah Git repository.
 - [x] Simpan worktree path ke DB segera setelah dibuat.
 - [x] Tambahkan cleanup saat task gagal jika policy mengharuskan.
-- [ ] Tambahkan command list worktree.
-- [ ] Tambahkan command remove worktree dengan konfirmasi/flag eksplisit.
+- [x] Tambahkan command list worktree.
+- [x] Tambahkan command remove worktree dengan konfirmasi/flag eksplisit.
 - [x] Cek `git status --porcelain` sebelum commit.
 - [x] Jangan membuat empty commit.
 - [ ] Tangani commit failure tanpa menghapus hasil task.
-- [ ] Tambahkan test path generation.
+- [x] Tambahkan test path generation.
 - [ ] Tambahkan test empty commit behavior.
 
 Acceptance criteria:
@@ -250,7 +250,7 @@ Files utama: `packages/core/src/result-collector.ts`, `packages/core/src/project
 - [ ] Jalankan checks setelah agent selesai sebelum commit bila policy dipilih.
 - [ ] Tambahkan summary report lengkap.
 - [ ] Sertakan run ID, task ID, status, agent, model, branch, worktree, log path/count, dan check result.
-- [ ] Tambahkan test project command detection.
+- [x] Tambahkan test project command detection.
 - [ ] Tambahkan test check failure handling.
 
 Acceptance criteria:
@@ -262,18 +262,18 @@ Acceptance criteria:
 
 Files utama: `packages/cli/src/tui.ts`, `packages/core/src/status-stream.ts`.
 
-- [ ] Ganti placeholder command `forkestra tui`.
-- [ ] Tampilkan daftar run terbaru.
-- [ ] Tampilkan task per run.
-- [ ] Tampilkan status task dengan teks yang tidak hanya mengandalkan warna.
-- [ ] Tampilkan agent dan model.
-- [ ] Tampilkan selected task log.
-- [ ] Tambahkan refresh interval.
+- [x] Ganti placeholder command `forkestra tui`.
+- [x] Tampilkan daftar run terbaru.
+- [x] Tampilkan task per run.
+- [x] Tampilkan status task dengan teks yang tidak hanya mengandalkan warna.
+- [x] Tampilkan agent dan model.
+- [x] Tampilkan selected task log.
+- [x] Tambahkan refresh interval.
 - [ ] Tambahkan keyboard navigation minimal.
-- [ ] Tambahkan graceful exit.
-- [ ] Tambahkan fallback ke output CLI jika terminal tidak mendukung TUI.
-- [ ] Pastikan TUI tidak mengunci database secara permanen.
-- [ ] Tambahkan test untuk data formatting/status view.
+- [x] Tambahkan graceful exit.
+- [x] Tambahkan fallback ke output CLI jika terminal tidak mendukung TUI.
+- [x] Pastikan TUI tidak mengunci database secara permanen.
+- [x] Tambahkan test untuk data formatting/status view.
 
 Acceptance criteria:
 
@@ -377,11 +377,11 @@ Acceptance criteria:
 ## Current Implementation Snapshot
 
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
-- Partial: TUI currently provides a database-backed status view but does not yet use an interactive OpenTUI multi-pane interface.
-- Worktree hardening: repository validation, branch/path collision checks, cleanup flag, and retry classification are implemented; list/remove management commands remain pending.
-- Test suite: 22 tests pass across parser, planner, scheduler, agent command construction, and worktree path behavior.
-- Not implemented: provider-specific concurrency limits, retry classification, worktree collision/cleanup commands, complete result metadata persistence, PR creation, and the full test matrix.
-- Verification: `bun test` passes 8 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
+- Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
+- Test suite: 35 tests pass across parser, planner, scheduler, agent command construction, project checks, model fallback, status formatting, and worktree path behavior.
+- Not implemented: provider-specific concurrency limits, complete result metadata persistence, PR creation, and the full integration/CLI test matrix.
+- Verification: `bun test` passes 34 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate
