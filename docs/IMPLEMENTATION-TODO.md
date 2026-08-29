@@ -295,8 +295,8 @@ Files utama: `apps/server/src/index.ts`, `packages/api/src/routers/index.ts`.
 - [x] Tambahkan input validation untuk semua query.
 - [x] Tentukan response error untuk ID yang tidak ditemukan.
 - [x] Pastikan API read-only untuk v1 awal.
-- [ ] Tambahkan test router.
-- [ ] Tambahkan test CORS dan health endpoint.
+- [x] Tambahkan test router.
+- [x] Tambahkan test CORS dan health endpoint.
 
 Acceptance criteria:
 
@@ -333,8 +333,8 @@ Acceptance criteria:
 - [x] Tambahkan agent runner tests.
 - [x] Tambahkan worktree tests.
 - [x] Tambahkan result collector tests.
-- [ ] Tambahkan API tests.
-- [ ] Tambahkan CLI smoke tests.
+- [x] Tambahkan API tests.
+- [x] Tambahkan CLI smoke tests.
 - [x] Tambahkan test untuk dry-run yang memastikan agent tidak dipanggil.
 - [x] Tambahkan test untuk database persistence.
 - [x] Tambahkan test untuk failure dan timeout path.
@@ -379,10 +379,10 @@ Acceptance criteria:
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
-- Test suite: 46 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, PR helpers, and worktree path behavior.
+- Test suite: 51 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, PR helpers, and worktree path behavior.
 - Not implemented: the full integration/CLI test matrix.
 - Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, task metadata PR URL, task summary reporting, and provider-specific concurrency limits.
-- Verification: `bun test` passes 46 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Verification: `bun test` passes 51 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate
