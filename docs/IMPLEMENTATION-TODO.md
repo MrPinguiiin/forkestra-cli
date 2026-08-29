@@ -13,14 +13,14 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 
 | Date | Phase | Summary | Owner |
 |---|---|---|---|
-| 2026-08-30 | Phase 0–13 | Added worktree listing/removal, collision validation, retry classification, model fallback handling, project-check tests, runner command tests, scheduler retry tests, and deterministic worktree tests. Interactive TUI, PR creation, and some integration tests remain pending. | opencode |
+| 2026-08-30 | Phase 0–14 | Added persisted execution metadata/check status, commit failure handling, explicit GitHub PR creation, worktree management, refreshing TUI status/logs, provider concurrency limits, and expanded unit coverage. Integration/CLI coverage remains pending. | opencode |
 
 ## Global Definition of Done
 
 - [x] `forkestra plan docs/DESIGN.md` menghasilkan task deterministic.
 - [x] `forkestra run docs/DESIGN.md --dry-run` membuat run/task di database tanpa menjalankan agent.
-- [ ] `forkestra run docs/DESIGN.md --execute` menjalankan agent berdasarkan agent dan model task.
-- [ ] `--worktree` membuat branch dan worktree terisolasi untuk setiap task.
+- [x] `forkestra run docs/DESIGN.md --execute` menjalankan agent berdasarkan agent dan model task.
+- [x] `--worktree` membuat branch dan worktree terisolasi untuk setiap task.
 - [x] Dependency graph dihormati dan task independen berjalan paralel.
 - [x] Dependency yang gagal membuat task downstream berstatus `skipped`.
 - [x] stdout/stderr agent tersimpan di `task_log` dan dapat ditampilkan secara live.
@@ -28,7 +28,7 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 - [-] `forkestra tui` menampilkan status dan log, bukan placeholder.
 - [x] Preset agent/model dapat disimpan, dibaca, dan digunakan saat planning/execution.
 - [x] Model dinamis dapat diambil dari tool CLI jika tersedia.
-- [ ] Lint, typecheck, build, dan test berjalan sukses.
+- [x] Lint, typecheck, build, dan test berjalan sukses.
 
 ---
 
@@ -164,12 +164,12 @@ File utama: `packages/core/src/scheduler.ts`.
 - [x] Tambahkan validasi dependency cycle sebelum execution.
 - [x] Tambahkan `--concurrency <n>`.
 - [x] Terapkan concurrency limit secara global.
-- [ ] Rancang batas concurrency per provider sebagai extension point.
+- [x] Rancang batas concurrency per provider sebagai extension point.
 - [x] Tambahkan `--retries <n>`.
 - [x] Retry hanya failure yang retryable.
 - [x] Jangan retry bila task dibatalkan atau dependency gagal.
-- [ ] Simpan attempt number dan error terakhir.
-- [ ] Tambahkan duration pada hasil scheduler.
+- [x] Simpan attempt number dan error terakhir.
+- [x] Tambahkan duration pada hasil scheduler.
 - [ ] Tambahkan test parallel execution.
 - [ ] Tambahkan test dependency ordering.
 - [ ] Tambahkan test failure propagation.
@@ -223,7 +223,7 @@ File utama: `packages/core/src/git-worktree.ts`, `packages/core/src/scheduler.ts
 - [x] Tambahkan command remove worktree dengan konfirmasi/flag eksplisit.
 - [x] Cek `git status --porcelain` sebelum commit.
 - [x] Jangan membuat empty commit.
-- [ ] Tangani commit failure tanpa menghapus hasil task.
+- [x] Tangani commit failure tanpa menghapus hasil task.
 - [x] Tambahkan test path generation.
 - [ ] Tambahkan test empty commit behavior.
 
@@ -246,8 +246,8 @@ Files utama: `packages/core/src/result-collector.ts`, `packages/core/src/project
 - [x] Jalankan checks pada cwd yang benar.
 - [x] Stream stdout/stderr checks ke `task_log` atau storage khusus.
 - [x] Simpan exit code dan duration check.
-- [ ] Tentukan apakah check failure membuat task failed atau hanya warning.
-- [ ] Jalankan checks setelah agent selesai sebelum commit bila policy dipilih.
+- [x] Tentukan apakah check failure membuat task failed atau hanya warning.
+- [x] Jalankan checks setelah agent selesai sebelum commit bila policy dipilih.
 - [ ] Tambahkan summary report lengkap.
 - [ ] Sertakan run ID, task ID, status, agent, model, branch, worktree, log path/count, dan check result.
 - [x] Tambahkan test project command detection.
@@ -307,16 +307,16 @@ Acceptance criteria:
 
 File utama: `packages/core/src/pr.ts`.
 
-- [ ] Buat abstraction provider PR.
-- [ ] Implementasikan GitHub melalui `gh` bila tersedia.
-- [ ] Tambahkan base branch option.
-- [ ] Tambahkan `--create-pr` flag eksplisit.
-- [ ] Tolak pembuatan PR jika task tidak committed.
-- [ ] Sertakan title dan body summary yang deterministic.
-- [ ] Simpan PR URL ke metadata atau field DB.
-- [ ] Tangani provider/binary tidak tersedia.
-- [ ] Jangan auto-create PR secara default.
-- [ ] Tambahkan test command construction dan failure handling.
+- [x] Buat abstraction provider PR.
+- [x] Implementasikan GitHub melalui `gh` bila tersedia.
+- [x] Tambahkan base branch option.
+- [x] Tambahkan `--create-pr` flag eksplisit.
+- [x] Tolak pembuatan PR jika task tidak committed.
+- [x] Sertakan title dan body summary yang deterministic.
+- [x] Simpan PR URL ke metadata atau field DB.
+- [x] Tangani provider/binary tidak tersedia.
+- [x] Jangan auto-create PR secara default.
+- [x] Tambahkan test command construction dan failure handling.
 
 Acceptance criteria:
 
@@ -339,7 +339,7 @@ Acceptance criteria:
 - [ ] Tambahkan test untuk database persistence.
 - [ ] Tambahkan test untuk failure dan timeout path.
 - [x] Tambahkan test untuk duplicate title task.
-- [ ] Tambahkan test untuk malformed preset.
+- [x] Tambahkan test untuk malformed preset.
 - [x] Tambahkan test command construction untuk Claude/Codex/OpenCode.
 - [x] Tambahkan test retryable dan non-retryable scheduler failure.
 - [x] Tambahkan test deterministic worktree path.
@@ -379,30 +379,31 @@ Acceptance criteria:
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
-- Test suite: 35 tests pass across parser, planner, scheduler, agent command construction, project checks, model fallback, status formatting, and worktree path behavior.
-- Not implemented: provider-specific concurrency limits, complete result metadata persistence, PR creation, and the full integration/CLI test matrix.
-- Verification: `bun test` passes 34 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Test suite: 41 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, PR helpers, and worktree path behavior.
+- Not implemented: the full integration/CLI test matrix.
+- Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, and task metadata PR URL.
+- Verification: `bun test` passes 41 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate
 
 Jalankan setelah seluruh phase yang dipilih selesai:
 
-- [ ] `bun run lint`
-- [ ] `bun run check-types`
-- [ ] `bun run build`
-- [ ] `bun test`
-- [ ] `bun packages/cli/src/index.ts plan docs/DESIGN.md`
-- [ ] `bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run`
-- [ ] `bun packages/cli/src/index.ts status`
-- [ ] `bun packages/cli/src/index.ts config`
+- [x] `bun run lint`
+- [x] `bun run check-types`
+- [x] `bun run build`
+- [x] `bun test`
+- [x] `bun packages/cli/src/index.ts plan docs/DESIGN.md`
+- [x] `bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run`
+- [x] `bun packages/cli/src/index.ts status`
+- [x] `bun packages/cli/src/index.ts config`
 - [ ] Verifikasi execution dengan fixture agent atau mock executor.
 - [ ] Verifikasi execution dengan `--worktree` pada fixture repository.
 - [ ] Verifikasi stdout/stderr tersimpan di `task_log`.
 - [ ] Verifikasi task dependency failure menghasilkan downstream `skipped`.
 - [ ] Verifikasi summary report lengkap.
 - [ ] Verifikasi tidak ada secret atau credential yang masuk ke log, commit, atau dokumentasi.
-- [ ] Update Update Log dengan hasil final.
+- [x] Update Update Log dengan hasil final.
 
 ## Implementation Notes
 

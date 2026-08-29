@@ -35,6 +35,10 @@ export const task = sqliteTable(
     worktreePath: text("worktree_path"),
     branchName: text("branch_name"),
     metadata: text("metadata", { mode: "json" }),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    exitCode: integer("exit_code"),
+    durationMs: integer("duration_ms"),
+    checkStatus: text("check_status", { enum: ["not-run", "passed", "failed"] }).notNull().default("not-run"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

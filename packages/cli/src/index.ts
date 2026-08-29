@@ -6,7 +6,9 @@ import {
   listModelsForAgent,
   loadSpec,
   planTasks,
+  createGitHubPullRequest,
   listWorktrees,
+  pullRequestBody,
   removeWorktree,
   runProjectCheck,
   formatStatusSnapshot,
@@ -53,6 +55,8 @@ program.command("run").description("Create a run from design.md and optionally e
   .option("--concurrency <n>", "Maximum parallel tasks", "1")
   .option("--retries <n>", "Retries per failed task", "0")
   .option("--cleanup-worktrees", "Remove task worktrees after execution")
+  .option("--create-pr", "Create a GitHub pull request for committed task results")
+  .option("--base <branch>", "Pull request base branch", "main")
   .action(async (specPath, options) => {
     const [{ db }, { run, task, taskLog }, { eq }] = await Promise.all([
       import("@forkestra-cli/db"),
@@ -88,6 +92,7 @@ program.command("run").description("Create a run from design.md and optionally e
     if (missingAgents.length > 0) throw new Error(`Missing required agent CLI: ${missingAgents.join(", ")}`);
     if (options.worktree) await Bun.$`mkdir -p ${options.workspaceRoot}`;
     await db.update(run).set({ status: "running", updatedAt: new Date() }).where(eq(run.id, createdRun.id));
+    const startedAt = new Map<string, number>();
     const result = await runScheduledTasks(tasks, {
       repoPath: options.repo,
       workspaceRoot: options.workspaceRoot,
@@ -98,21 +103,34 @@ program.command("run").description("Create a run from design.md and optionally e
       retries: Number(options.retries),
       retryable: (agentResult) => !agentResult.timedOut && agentResult.exitCode !== 127,
       cleanupWorktrees: !!options.cleanupWorktrees,
+      checkTask: async (item, cwd) => {
+        const checks = options.skipChecks ? [] : options.checkCommand ? [options.checkCommand] : options.check ? await import("@forkestra-cli/core").then(({ detectProjectChecks }) => detectProjectChecks(cwd)) : [];
+        let result = { exitCode: 0, stdout: "", stderr: "" };
+        for (const check of checks) {
+          const checkResult = await runProjectCheck(check, cwd);
+          result = { exitCode: checkResult.exitCode, stdout: `${result.stdout}${checkResult.stdout}`, stderr: `${result.stderr}${checkResult.stderr}` };
+          await db.insert(taskLog).values({ taskId: item.id, stream: checkResult.exitCode === 0 ? "stdout" : "stderr", content: `[check ${check}]\n${checkResult.stdout}${checkResult.stderr}` });
+        }
+        return result;
+      },
       onTaskStart: async (item, cwd) => {
+        startedAt.set(item.id, Date.now());
         await db.update(task).set({ status: "running", worktreePath: cwd, updatedAt: new Date() }).where(eq(task.id, item.id));
         console.log(`running ${item.id} in ${cwd}`);
       },
       onTaskLog: async (item, stream, content) => { await db.insert(taskLog).values({ taskId: item.id, stream, content }); },
       onTaskSkipped: async (item) => { await db.update(task).set({ status: "skipped", updatedAt: new Date() }).where(eq(task.id, item.id)); },
+      onTaskAttempt: async (item, attempt) => {
+        await db.update(task).set({ attemptCount: attempt, updatedAt: new Date() }).where(eq(task.id, item.id));
+      },
       onTaskComplete: async (item, agentResult) => {
-        const checks = options.skipChecks ? [] : options.checkCommand ? [options.checkCommand] : options.check ? await import("@forkestra-cli/core").then(({ detectProjectChecks }) => detectProjectChecks(options.worktree ? item.worktreePath ?? options.repo : options.repo)) : [];
-        let status: "completed" | "failed" = agentResult.exitCode === 0 ? "completed" : "failed";
-        for (const check of checks) {
-          const checkResult = await runProjectCheck(check, item.worktreePath ?? options.repo);
-          await db.insert(taskLog).values({ taskId: item.id, stream: checkResult.exitCode === 0 ? "stdout" : "stderr", content: `[check ${check}]\n${checkResult.stdout}${checkResult.stderr}` });
-          if (checkResult.exitCode !== 0) status = "failed";
+        const status: "completed" | "failed" = agentResult.exitCode === 0 ? "completed" : "failed";
+        await db.update(task).set({ status, exitCode: agentResult.exitCode, durationMs: Date.now() - (startedAt.get(item.id) ?? Date.now()), checkStatus: options.check || options.checkCommand ? (status === "completed" ? "passed" : "failed") : "not-run", updatedAt: new Date() }).where(eq(task.id, item.id));
+        if (status === "completed" && options.createPr && options.worktree && options.commitResults && item.worktreePath) {
+          const pr = await createGitHubPullRequest({ cwd: item.worktreePath, baseBranch: options.base, title: `feat: complete ${item.id}`, body: pullRequestBody(item) });
+          await db.update(task).set({ metadata: { plannedId: item.id, dependsOn: item.dependsOn, pullRequestUrl: pr.url }, updatedAt: new Date() }).where(eq(task.id, item.id));
+          console.log(`${item.id} pr=${pr.url}`);
         }
-        await db.update(task).set({ status, updatedAt: new Date() }).where(eq(task.id, item.id));
         console.log(`${item.id} ${status}`);
       },
     });
