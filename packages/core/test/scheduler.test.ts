@@ -66,4 +66,14 @@ describe("scheduler", () => {
       repoPath: process.cwd(), workspaceRoot: ".tmp", useWorktree: false, commitResults: false,
     })).rejects.toThrow("Dependency cycle detected");
   });
+
+  test("returns distinct terminal lifecycle statuses", async () => {
+    const result = await runScheduledTasks([task("failed"), task("skipped", ["failed"]), task("completed")], {
+      repoPath: process.cwd(), workspaceRoot: ".tmp", useWorktree: false, commitResults: false,
+      executor: async (item) => ({ exitCode: item.id === "failed" ? 1 : 0, stdout: "", stderr: "" }),
+    });
+    expect(result.completed.map((item) => item.status)).toEqual(["completed"]);
+    expect(result.failed.map((item) => item.status)).toEqual(["failed"]);
+    expect(result.skipped.map((item) => item.status)).toEqual(["skipped"]);
+  });
 });

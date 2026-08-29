@@ -52,19 +52,19 @@ Acceptance criteria:
 
 Files utama: `packages/core/src/types.ts`, `packages/db/src/schema/forkestra.ts`, `packages/cli/src/index.ts`.
 
-- [ ] Selaraskan field `PlannedTask` dengan row `task` di database.
-- [ ] Pastikan `dependsOn` memiliki representasi yang konsisten di DB dan runtime.
-- [ ] Ganti mapping task berbasis title dengan identifier yang deterministic.
-- [ ] Tetapkan representasi status `skipped`.
-- [ ] Tambahkan status `skipped` ke type/schema bila dipilih.
-- [ ] Pastikan status run dan task diperbarui untuk semua terminal state.
-- [ ] Pastikan `updatedAt` berubah saat status task/run berubah.
-- [ ] Tambahkan test untuk lifecycle status.
+- [x] Selaraskan field `PlannedTask` dengan row `task` di database.
+- [x] Pastikan `dependsOn` memiliki representasi yang konsisten di DB dan runtime.
+- [x] Ganti mapping task berbasis title dengan identifier yang deterministic.
+- [x] Tetapkan representasi status `skipped`.
+- [x] Tambahkan status `skipped` ke type/schema bila dipilih.
+- [x] Pastikan status run dan task diperbarui untuk semua terminal state.
+- [x] Pastikan `updatedAt` berubah saat status task/run berubah.
+- [x] Tambahkan test untuk lifecycle status.
 
 Acceptance criteria:
 
-- [ ] Tidak ada mismatch antara type, schema, planner, scheduler, dan CLI.
-- [ ] Task yang di-skip dapat dibedakan dari task yang gagal atau dibatalkan.
+- [x] Tidak ada mismatch antara type, schema, planner, scheduler, dan CLI.
+- [x] Task yang di-skip dapat dibedakan dari task yang gagal atau dibatalkan.
 
 ## Phase 2 — Parser / Loader Hardening
 
