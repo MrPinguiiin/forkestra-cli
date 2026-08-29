@@ -13,6 +13,7 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 
 | Date | Phase | Summary | Owner |
 |---|---|---|---|
+| 2026-08-30 | Phase 0 | Baseline gate passed: lint, typecheck, build, 55 tests, deterministic plan, and dry-run verification. No baseline failures. Final gate commands: `bun run lint`, `bun run check-types`, `bun run build`, `bun test`, `bun packages/cli/src/index.ts plan docs/DESIGN.md`, `bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run`, plus `git diff --check`. | opencode |
 | 2026-08-30 | Phase 0–14 | Added persisted execution metadata/check status, commit failure handling, explicit GitHub PR creation, worktree management, refreshing TUI status/logs, provider concurrency limits, and expanded unit coverage. Integration/CLI coverage remains pending. | opencode |
 
 ## Global Definition of Done
@@ -34,19 +35,19 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 
 ## Phase 0 — Baseline Audit dan Test Gate
 
-- [ ] Jalankan `bun run lint` dan simpan hasil baseline.
-- [ ] Jalankan `bun run check-types` dan simpan hasil baseline.
-- [ ] Jalankan `bun run build` dan simpan hasil baseline.
-- [ ] Jalankan test suite yang tersedia dan catat command-nya.
-- [ ] Verifikasi `forkestra plan docs/DESIGN.md`.
-- [ ] Verifikasi `forkestra run docs/DESIGN.md --dry-run`.
-- [ ] Catat error baseline di Update Log.
-- [ ] Tetapkan command final yang wajib dijalankan sebelum setiap phase dinyatakan selesai.
+- [x] Jalankan `bun run lint` dan simpan hasil baseline.
+- [x] Jalankan `bun run check-types` dan simpan hasil baseline.
+- [x] Jalankan `bun run build` dan simpan hasil baseline.
+- [x] Jalankan test suite yang tersedia dan catat command-nya.
+- [x] Verifikasi `forkestra plan docs/DESIGN.md`.
+- [x] Verifikasi `forkestra run docs/DESIGN.md --dry-run`.
+- [x] Catat error baseline di Update Log.
+- [x] Tetapkan command final yang wajib dijalankan sebelum setiap phase dinyatakan selesai.
 
 Acceptance criteria:
 
-- [ ] Baseline reproducible.
-- [ ] Semua failure awal terdokumentasi dan dapat dibedakan dari regression baru.
+- [x] Baseline reproducible.
+- [x] Semua failure awal terdokumentasi dan dapat dibedakan dari regression baru.
 
 ## Phase 1 — Core Types dan Status Lifecycle
 
