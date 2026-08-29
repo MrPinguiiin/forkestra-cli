@@ -248,15 +248,15 @@ Files utama: `packages/core/src/result-collector.ts`, `packages/core/src/project
 - [x] Simpan exit code dan duration check.
 - [x] Tentukan apakah check failure membuat task failed atau hanya warning.
 - [x] Jalankan checks setelah agent selesai sebelum commit bila policy dipilih.
-- [ ] Tambahkan summary report lengkap.
-- [ ] Sertakan run ID, task ID, status, agent, model, branch, worktree, log path/count, dan check result.
+- [x] Tambahkan summary report lengkap.
+- [x] Sertakan run ID, task ID, status, agent, model, branch, worktree, log path/count, dan check result.
 - [x] Tambahkan test project command detection.
-- [ ] Tambahkan test check failure handling.
+- [x] Tambahkan test check failure handling.
 
 Acceptance criteria:
 
-- [ ] Hasil task tidak dianggap sukses bila required checks gagal.
-- [ ] Summary dapat digunakan manusia untuk review tanpa membaca seluruh database.
+- [x] Hasil task tidak dianggap sukses bila required checks gagal.
+- [x] Summary dapat digunakan manusia untuk review tanpa membaca seluruh database.
 
 ## Phase 10 — OpenTUI Live Progress
 
@@ -269,7 +269,7 @@ Files utama: `packages/cli/src/tui.ts`, `packages/core/src/status-stream.ts`.
 - [x] Tampilkan agent dan model.
 - [x] Tampilkan selected task log.
 - [x] Tambahkan refresh interval.
-- [ ] Tambahkan keyboard navigation minimal.
+- [x] Tambahkan keyboard navigation minimal.
 - [x] Tambahkan graceful exit.
 - [x] Tambahkan fallback ke output CLI jika terminal tidak mendukung TUI.
 - [x] Pastikan TUI tidak mengunci database secara permanen.
@@ -277,8 +277,8 @@ Files utama: `packages/cli/src/tui.ts`, `packages/core/src/status-stream.ts`.
 
 Acceptance criteria:
 
-- [ ] `forkestra tui` menampilkan live status dan log.
-- [ ] User dapat keluar tanpa meninggalkan process atau terminal dalam keadaan rusak.
+- [x] `forkestra tui` menampilkan live status dan log.
+- [x] User dapat keluar tanpa meninggalkan process atau terminal dalam keadaan rusak.
 
 ## Phase 11 — Hono/tRPC API Dashboard Read Model
 
@@ -325,19 +325,19 @@ Acceptance criteria:
 
 ## Phase 13 — Test Suite Lengkap
 
-- [ ] Pilih dan dokumentasikan test runner (`bun test` atau runner yang sudah digunakan repo).
-- [ ] Tambahkan parser tests.
-- [ ] Tambahkan planner tests.
-- [ ] Tambahkan preset tests.
-- [ ] Tambahkan scheduler tests.
-- [ ] Tambahkan agent runner tests.
-- [ ] Tambahkan worktree tests.
-- [ ] Tambahkan result collector tests.
+- [x] Pilih dan dokumentasikan test runner (`bun test` atau runner yang sudah digunakan repo).
+- [x] Tambahkan parser tests.
+- [x] Tambahkan planner tests.
+- [x] Tambahkan preset tests.
+- [x] Tambahkan scheduler tests.
+- [x] Tambahkan agent runner tests.
+- [x] Tambahkan worktree tests.
+- [x] Tambahkan result collector tests.
 - [ ] Tambahkan API tests.
 - [ ] Tambahkan CLI smoke tests.
-- [ ] Tambahkan test untuk dry-run yang memastikan agent tidak dipanggil.
-- [ ] Tambahkan test untuk database persistence.
-- [ ] Tambahkan test untuk failure dan timeout path.
+- [x] Tambahkan test untuk dry-run yang memastikan agent tidak dipanggil.
+- [x] Tambahkan test untuk database persistence.
+- [x] Tambahkan test untuk failure dan timeout path.
 - [x] Tambahkan test untuk duplicate title task.
 - [x] Tambahkan test untuk malformed preset.
 - [x] Tambahkan test command construction untuk Claude/Codex/OpenCode.
@@ -346,31 +346,31 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- [ ] Test suite berjalan deterministically tanpa bergantung pada CLI agent nyata.
-- [ ] External process dan Git di-mock atau dijalankan pada fixture repository terisolasi.
+- [x] Test suite berjalan deterministically tanpa bergantung pada CLI agent nyata.
+- [x] External process dan Git di-mock atau dijalankan pada fixture repository terisolasi.
 
 ## Phase 14 — Documentation dan Design Status
 
 Files utama: `docs/DESIGN.md`, `docs/IMPLEMENTATION-TODO.md`, README.
 
-- [ ] Update roadmap v0.1–v1.0 berdasarkan fitur yang benar-benar selesai.
-- [ ] Tandai bagian DESIGN yang sudah implemented.
-- [ ] Tandai bagian DESIGN yang masih partial.
-- [ ] Tambahkan contoh `plan`.
-- [ ] Tambahkan contoh `run --dry-run`.
-- [ ] Tambahkan contoh `run --execute --worktree`.
-- [ ] Tambahkan contoh `status`.
-- [ ] Tambahkan contoh `tui`.
-- [ ] Tambahkan contoh preset.
-- [ ] Tambahkan contoh model listing.
-- [ ] Dokumentasikan environment database.
-- [ ] Dokumentasikan batasan v1 dan non-goals.
-- [ ] Pastikan checklist file ini tetap sinkron dengan DESIGN.
+- [x] Update roadmap v0.1–v1.0 berdasarkan fitur yang benar-benar selesai.
+- [x] Tandai bagian DESIGN yang sudah implemented.
+- [x] Tandai bagian DESIGN yang masih partial.
+- [x] Tambahkan contoh `plan`.
+- [x] Tambahkan contoh `run --dry-run`.
+- [x] Tambahkan contoh `run --execute --worktree`.
+- [x] Tambahkan contoh `status`.
+- [x] Tambahkan contoh `tui`.
+- [x] Tambahkan contoh preset.
+- [x] Tambahkan contoh model listing.
+- [x] Dokumentasikan environment database.
+- [x] Dokumentasikan batasan v1 dan non-goals.
+- [x] Pastikan checklist file ini tetap sinkron dengan DESIGN.
 
 Acceptance criteria:
 
-- [ ] Dokumentasi tidak mengklaim fitur yang belum tersedia.
-- [ ] Developer berikutnya dapat menjalankan dan melanjutkan checklist ini.
+- [x] Dokumentasi tidak mengklaim fitur yang belum tersedia.
+- [x] Developer berikutnya dapat menjalankan dan melanjutkan checklist ini.
 
 ---
 
@@ -379,10 +379,10 @@ Acceptance criteria:
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
-- Test suite: 41 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, PR helpers, and worktree path behavior.
+- Test suite: 46 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, PR helpers, and worktree path behavior.
 - Not implemented: the full integration/CLI test matrix.
-- Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, and task metadata PR URL.
-- Verification: `bun test` passes 41 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, task metadata PR URL, task summary reporting, and provider-specific concurrency limits.
+- Verification: `bun test` passes 46 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate

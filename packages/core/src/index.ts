@@ -5,6 +5,7 @@ export * from "./planner";
 export * from "./models";
 export * from "./project-checks";
 export * from "./pr";
+export * from "./result-collector";
 export * from "./scheduler";
 export * from "./status-stream";
 export * from "./types";

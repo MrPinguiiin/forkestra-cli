@@ -8,6 +8,7 @@ import {
   planTasks,
   createGitHubPullRequest,
   listWorktrees,
+  formatRunSummary,
   pullRequestBody,
   removeWorktree,
   runProjectCheck,
@@ -136,7 +137,28 @@ program.command("run").description("Create a run from design.md and optionally e
     });
     const runStatus = result.failed.length === 0 && result.skipped.length === 0 ? "completed" : "failed";
     await db.update(run).set({ status: runStatus, updatedAt: new Date() }).where(eq(run.id, createdRun.id));
-    console.log(`summary completed=${result.completed.length} failed=${result.failed.length} skipped=${result.skipped.length}`);
+    const taskSummaries = await db.select().from(task).where(eq(task.runId, createdRun.id));
+    const logCounts = await Promise.all(taskSummaries.map(async (item) => ({ id: item.id, count: (await db.select().from(taskLog).where(eq(taskLog.taskId, item.id))).length })));
+     const summary = {
+       runId: createdRun.id,
+       completed: result.completed.length,
+       failed: result.failed.length,
+       skipped: result.skipped.length,
+       pending: 0,
+       running: 0,
+       tasks: taskSummaries.map((item) => ({
+         id: item.id,
+         runId: item.runId ?? undefined,
+         status: item.status as "pending" | "running" | "completed" | "failed" | "cancelled" | "skipped",
+         agent: item.agent as "claude-code" | "codex" | "opencode",
+         model: item.model ?? "",
+         branchName: item.branchName ?? "",
+         worktreePath: item.worktreePath ?? undefined,
+         logCount: logCounts.find((count) => count.id === item.id)?.count ?? 0,
+         checkStatus: item.checkStatus,
+       })),
+     };
+     console.log(formatRunSummary(summary));
   });
 
 const config = program.command("config").description("Print current runtime configuration");
@@ -186,16 +208,32 @@ program.command("tui").description("Start the OpenTUI status interface").option(
   const [latest] = await db.select().from(run).orderBy(desc(run.createdAt)).limit(1);
   if (!latest) { console.log("No runs available"); return; }
   let selectedTaskId: string | undefined;
+  let selectedIndex = 0;
   let running = true;
   const stop = () => { running = false; };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   while (running) {
     const tasks = await db.select().from(task).where(eq(task.runId, latest.id));
-    selectedTaskId = selectedTaskId && tasks.some((item) => item.id === selectedTaskId) ? selectedTaskId : tasks[0]?.id;
+    selectedIndex = Math.min(selectedIndex, Math.max(0, tasks.length - 1));
+    selectedTaskId = tasks[selectedIndex]?.id;
     const logs = selectedTaskId ? await db.select().from(taskLog).where(eq(taskLog.taskId, selectedTaskId)).limit(20) : [];
     process.stdout.write("\\x1b[2J\\x1b[H");
     console.log(formatStatusSnapshot({ runId: latest.id, runStatus: latest.status, selectedTaskId, tasks, logs: logs.map((item) => `[${item.stream}] ${item.content}`) }));
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode?.(true);
+      process.stdin.resume();
+      const key = await new Promise<string>((resolve) => {
+        const onData = (data: Buffer) => { process.stdin.off("data", onData); resolve(data.toString()); };
+        process.stdin.once("data", onData);
+      });
+      process.stdin.setRawMode?.(false);
+      if (key === "q" || key === "\u0003" || key === "\u001b") stop();
+      if (key === "\u001b[A" || key === "k") selectedIndex = Math.max(0, selectedIndex - 1);
+      if (key === "\u001b[B" || key === "j") selectedIndex += 1;
+    } else {
+      await Bun.sleep(Math.max(100, Number(options.refresh)));
+    }
     if (!running) break;
     await Bun.sleep(Math.max(100, Number(options.refresh)));
   }

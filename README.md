@@ -97,8 +97,20 @@ bun run dev:server
 Available tRPC procedures include:
 
 - `healthCheck`
-- `runs`
+- `runs` (limited to the 20 most recent runs)
 - `tasksByRun`
+- `runById`
+- `taskLogsByTask` (limit 1–100, default 50)
+- `latestRun`
+- `runSummary`
+
+The HTTP health endpoint is `GET /`. CORS is configured by `CORS_ORIGIN`.
+
+Inspect the live terminal view with task selection using `j`/Down, `k`/Up, and exit with `q`, `Esc`, or Ctrl-C:
+
+```bash
+bun packages/cli/src/index.ts tui
+```
 
 ## Project Structure
 

@@ -68,7 +68,7 @@ Commander.js menyediakan command utama:
 - `forkestra run <design.md> --dry-run`: validasi planning dan scheduling tanpa memanggil agent.
 - `forkestra run <design.md> --execute --worktree`: jalankan agent dengan worktree terisolasi.
 - `forkestra status`: tampilkan run/task terakhir.
-- `forkestra tui`: placeholder entrypoint untuk OpenTUI status interface.
+- `forkestra tui`: live terminal status interface dengan refresh, task selection via `j`/`k` atau tombol panah, dan graceful exit.
 - `forkestra config`: tampilkan konfigurasi runtime.
 
 ### 4.2 Parser / Loader
@@ -167,7 +167,7 @@ Drizzle tables:
 3. Planner membuat daftar task deterministic.
 4. CLI menyimpan `run` dan `task` ke Turso/SQLite.
 5. Jika `--execute` dipakai, Agent Runner menjalankan CLI agent via `Bun.spawn()`.
-6. stdout/stderr disimpan ke `task_log` dan ditampilkan ke terminal/TUI.
+6. stdout/stderr disimpan ke `task_log` dan ditampilkan ke terminal/TUI; summary akhir mencantumkan status, agent, model, branch, worktree, jumlah log, dan hasil check.
 7. Status task diperbarui: pending → running → completed/failed.
 8. Result collector dapat membuat commit/branch/PR jika mode itu diaktifkan.
 
