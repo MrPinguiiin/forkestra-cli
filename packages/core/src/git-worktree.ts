@@ -1,3 +1,4 @@
+import { exists } from "node:fs/promises";
 import type { PlannedTask } from "./types";
 
 export type WorktreeOptions = {
@@ -29,6 +30,14 @@ export function worktreePathFor(task: PlannedTask, workspaceRoot: string) {
 
 export async function createWorktree(task: PlannedTask, options: WorktreeOptions) {
   const path = worktreePathFor(task, options.workspaceRoot);
+  if (await exists(path)) throw new Error(`Worktree path already exists: ${path}`);
+  try {
+    await runGit(["show-ref", "--verify", "--quiet", `refs/heads/${task.branchName}`], options.repoPath);
+    throw new Error(`Branch already exists: ${task.branchName}`);
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes("failed")) throw error;
+  }
+  await runGit(["rev-parse", "--is-inside-work-tree"], options.repoPath);
   await runGit(["worktree", "add", path, "-b", task.branchName], options.repoPath);
   return path;
 }

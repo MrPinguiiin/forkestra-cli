@@ -35,6 +35,32 @@ describe("scheduler", () => {
     expect(result.skipped.map((item) => item.id)).toEqual(["downstream"]);
   });
 
+  test("retries retryable failures", async () => {
+    let attempts = 0;
+    const result = await runScheduledTasks([task("retry")], {
+      repoPath: process.cwd(), workspaceRoot: ".tmp", useWorktree: false, commitResults: false, retries: 1,
+      executor: async () => {
+        attempts += 1;
+        return { exitCode: attempts === 1 ? 1 : 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(attempts).toBe(2);
+    expect(result.completed.map((item) => item.id)).toEqual(["retry"]);
+  });
+
+  test("does not retry non-retryable exit codes", async () => {
+    let attempts = 0;
+    const result = await runScheduledTasks([task("missing")], {
+      repoPath: process.cwd(), workspaceRoot: ".tmp", useWorktree: false, commitResults: false, retries: 3,
+      executor: async () => {
+        attempts += 1;
+        return { exitCode: 127, stdout: "", stderr: "missing" };
+      },
+    });
+    expect(attempts).toBe(1);
+    expect(result.failed.map((item) => item.id)).toEqual(["missing"]);
+  });
+
   test("rejects dependency cycles", async () => {
     await expect(runScheduledTasks([task("a", ["b"]), task("b", ["a"])], {
       repoPath: process.cwd(), workspaceRoot: ".tmp", useWorktree: false, commitResults: false,

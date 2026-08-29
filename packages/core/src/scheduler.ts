@@ -1,5 +1,5 @@
 import { runAgent, type AgentRunResult } from "./agent-runner";
-import { commitTaskResult, createWorktree } from "./git-worktree";
+import { commitTaskResult, createWorktree, removeWorktree } from "./git-worktree";
 import type { PlannedTask } from "./types";
 
 export type TaskExecutor = (task: PlannedTask, cwd: string) => Promise<AgentRunResult>;
@@ -12,6 +12,8 @@ export type SchedulerOptions = {
   timeoutMs?: number;
   concurrency?: number;
   retries?: number;
+  retryable?: (result: AgentRunResult) => boolean;
+  cleanupWorktrees?: boolean;
   onTaskStart?: (task: PlannedTask, cwd: string) => Promise<void> | void;
   onTaskLog?: (task: PlannedTask, stream: "stdout" | "stderr", content: string) => Promise<void> | void;
   onTaskComplete?: (task: PlannedTask, result: AgentRunResult) => Promise<void> | void;
@@ -63,10 +65,11 @@ async function executeTask(task: PlannedTask, options: SchedulerOptions): Promis
           onStdout: (content) => void options.onTaskLog?.(task, "stdout", content),
           onStderr: (content) => void options.onTaskLog?.(task, "stderr", content),
         });
-    if (result.exitCode === 0) break;
+    if (result.exitCode === 0 || !(options.retryable?.(result) ?? (!result.timedOut && result.exitCode !== 127))) break;
   }
   if (result.exitCode === 0 && options.commitResults && options.useWorktree) await commitTaskResult(taskWithPath, cwd);
   await options.onTaskComplete?.(taskWithPath, result);
+  if (options.cleanupWorktrees && options.useWorktree) await removeWorktree(cwd, options.repoPath);
   return result;
 }
 

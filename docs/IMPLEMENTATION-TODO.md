@@ -166,7 +166,7 @@ File utama: `packages/core/src/scheduler.ts`.
 - [x] Terapkan concurrency limit secara global.
 - [ ] Rancang batas concurrency per provider sebagai extension point.
 - [x] Tambahkan `--retries <n>`.
-- [ ] Retry hanya failure yang retryable.
+- [x] Retry hanya failure yang retryable.
 - [x] Jangan retry bila task dibatalkan atau dependency gagal.
 - [ ] Simpan attempt number dan error terakhir.
 - [ ] Tambahkan duration pada hasil scheduler.
@@ -214,11 +214,11 @@ File utama: `packages/core/src/git-worktree.ts`, `packages/core/src/scheduler.ts
 - [x] Verifikasi path `<workspace>/task-<id>`.
 - [x] Verifikasi branch `feature/<task-id>`.
 - [x] Tangani workspace root yang belum ada.
-- [ ] Tangani branch yang sudah ada.
-- [ ] Tangani path worktree yang sudah ada.
-- [ ] Tambahkan validasi target repository adalah Git repository.
+- [x] Tangani branch yang sudah ada.
+- [x] Tangani path worktree yang sudah ada.
+- [x] Tambahkan validasi target repository adalah Git repository.
 - [x] Simpan worktree path ke DB segera setelah dibuat.
-- [ ] Tambahkan cleanup saat task gagal jika policy mengharuskan.
+- [x] Tambahkan cleanup saat task gagal jika policy mengharuskan.
 - [ ] Tambahkan command list worktree.
 - [ ] Tambahkan command remove worktree dengan konfirmasi/flag eksplisit.
 - [x] Cek `git status --porcelain` sebelum commit.
@@ -293,7 +293,7 @@ Files utama: `apps/server/src/index.ts`, `packages/api/src/routers/index.ts`.
 - [x] Tambahkan query run summary.
 - [x] Tambahkan pagination untuk task log.
 - [x] Tambahkan input validation untuk semua query.
-- [ ] Tentukan response error untuk ID yang tidak ditemukan.
+- [x] Tentukan response error untuk ID yang tidak ditemukan.
 - [x] Pastikan API read-only untuk v1 awal.
 - [ ] Tambahkan test router.
 - [ ] Tambahkan test CORS dan health endpoint.
@@ -338,8 +338,11 @@ Acceptance criteria:
 - [ ] Tambahkan test untuk dry-run yang memastikan agent tidak dipanggil.
 - [ ] Tambahkan test untuk database persistence.
 - [ ] Tambahkan test untuk failure dan timeout path.
-- [ ] Tambahkan test untuk duplicate title task.
+- [x] Tambahkan test untuk duplicate title task.
 - [ ] Tambahkan test untuk malformed preset.
+- [x] Tambahkan test command construction untuk Claude/Codex/OpenCode.
+- [x] Tambahkan test retryable dan non-retryable scheduler failure.
+- [x] Tambahkan test deterministic worktree path.
 
 Acceptance criteria:
 
@@ -375,6 +378,8 @@ Acceptance criteria:
 
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI currently provides a database-backed status view but does not yet use an interactive OpenTUI multi-pane interface.
+- Worktree hardening: repository validation, branch/path collision checks, cleanup flag, and retry classification are implemented; list/remove management commands remain pending.
+- Test suite: 22 tests pass across parser, planner, scheduler, agent command construction, and worktree path behavior.
 - Not implemented: provider-specific concurrency limits, retry classification, worktree collision/cleanup commands, complete result metadata persistence, PR creation, and the full test matrix.
 - Verification: `bun test` passes 8 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.

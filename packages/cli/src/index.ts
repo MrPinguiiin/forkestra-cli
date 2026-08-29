@@ -49,6 +49,7 @@ program.command("run").description("Create a run from design.md and optionally e
   .option("--timeout <ms>", "Agent timeout in milliseconds", "900000")
   .option("--concurrency <n>", "Maximum parallel tasks", "1")
   .option("--retries <n>", "Retries per failed task", "0")
+  .option("--cleanup-worktrees", "Remove task worktrees after execution")
   .action(async (specPath, options) => {
     const [{ db }, { run, task, taskLog }, { eq }] = await Promise.all([
       import("@forkestra-cli/db"),
@@ -92,6 +93,8 @@ program.command("run").description("Create a run from design.md and optionally e
       timeoutMs: Number(options.timeout),
       concurrency: Number(options.concurrency),
       retries: Number(options.retries),
+      retryable: (agentResult) => !agentResult.timedOut && agentResult.exitCode !== 127,
+      cleanupWorktrees: !!options.cleanupWorktrees,
       onTaskStart: async (item, cwd) => {
         await db.update(task).set({ status: "running", worktreePath: cwd, updatedAt: new Date() }).where(eq(task.id, item.id));
         console.log(`running ${item.id} in ${cwd}`);
