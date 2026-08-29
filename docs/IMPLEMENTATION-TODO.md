@@ -379,10 +379,10 @@ Acceptance criteria:
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
-- Test suite: 51 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, PR helpers, and worktree path behavior.
+- Test suite: 52 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, isolated CLI dry-run/database persistence, PR helpers, and worktree path behavior.
 - Not implemented: the full integration/CLI test matrix.
 - Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, task metadata PR URL, task summary reporting, and provider-specific concurrency limits.
-- Verification: `bun test` passes 51 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Verification: `bun test` passes 52 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate
@@ -397,12 +397,12 @@ Jalankan setelah seluruh phase yang dipilih selesai:
 - [x] `bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run`
 - [x] `bun packages/cli/src/index.ts status`
 - [x] `bun packages/cli/src/index.ts config`
-- [ ] Verifikasi execution dengan fixture agent atau mock executor.
+- [x] Verifikasi execution dengan fixture agent atau mock executor.
 - [ ] Verifikasi execution dengan `--worktree` pada fixture repository.
 - [ ] Verifikasi stdout/stderr tersimpan di `task_log`.
-- [ ] Verifikasi task dependency failure menghasilkan downstream `skipped`.
-- [ ] Verifikasi summary report lengkap.
-- [ ] Verifikasi tidak ada secret atau credential yang masuk ke log, commit, atau dokumentasi.
+- [x] Verifikasi task dependency failure menghasilkan downstream `skipped`.
+- [x] Verifikasi summary report lengkap.
+- [x] Verifikasi tidak ada secret atau credential yang masuk ke log, commit, atau dokumentasi.
 - [x] Update Update Log dengan hasil final.
 
 ## Implementation Notes
