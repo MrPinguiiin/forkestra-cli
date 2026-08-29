@@ -12,7 +12,8 @@ describe("API router", () => {
     await expect(caller.runById({ runId: "" })).rejects.toThrow();
   });
 
-  test("limits task log query input", async () => {
+  test("limits task and log query input", async () => {
+    await expect(caller.tasksByRun({ runId: "run", limit: 101 })).rejects.toThrow();
     await expect(caller.taskLogsByTask({ taskId: "task", limit: 101 })).rejects.toThrow();
   });
 });

@@ -31,9 +31,9 @@ async function loadPreset(name: string | undefined) {
     import("@forkestra-cli/db/schema"),
     import("drizzle-orm"),
   ]);
-  const [stored] = await db.select().from(agentPreset).where(eq(agentPreset.name, name)).limit(1);
-  if (!stored) throw new Error(`Preset not found: ${name}`);
-  return validatePreset({ name: stored.name, mapping: stored.mapping as Parameters<typeof validatePreset>[0]["mapping"] });
+   const [stored] = await db.select().from(agentPreset).where(eq(agentPreset.name, name)).limit(1);
+   if (!stored) return defaultPreset;
+   return validatePreset({ name: stored.name, mapping: stored.mapping as Parameters<typeof validatePreset>[0]["mapping"] });
 }
 
 program.command("plan").description("Parse a design.md file and print deterministic tasks").argument("<spec>", "Path to design.md").option("--preset <name>", "Agent/model preset").action(async (specPath, options) => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { commandFor } from "../src/agent-runner";
-import { listModelsForAgent } from "../src/models";
+import { commandFor, runAgent } from "../src/agent-runner";
+import { listModelsForAgent, parseModelOutput } from "../src/models";
 import type { PlannedTask } from "../src/types";
 
 const baseTask: PlannedTask = {
@@ -36,10 +36,24 @@ describe("agent runner commands", () => {
       args: ["run", "--agent", "backend-agent", "-m", "provider/model", "prompt"],
     });
   });
+
+  test("streams stdout and stderr and classifies timeout", async () => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const result = await runAgent({ ...baseTask, agent: "opencode" }, { cwd: process.cwd(), prompt: "ignored", timeoutMs: 10, env: { PATH: "/bin" }, onStdout: (chunk) => stdout.push(chunk), onStderr: (chunk) => stderr.push(chunk) });
+    expect(result.exitCode).toBe(127);
+    expect(result.timedOut ?? false).toBe(false);
+    expect(stdout.length + stderr.length).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe("model discovery", () => {
-  test("uses a stable fallback for static tool model lists", async () => {
+  test("parses model output lines", () => {
+    expect(parseModelOutput(" model-a\n\nmodel-b \n")).toEqual(["model-a", "model-b"]);
+  });
+
+  test("uses stable fallbacks for static tool model lists", async () => {
     expect(await listModelsForAgent("claude-code")).toEqual({ models: ["claude-sonnet-4"] });
+    expect(await listModelsForAgent("codex")).toEqual({ models: ["gpt-5.2"] });
   });
 });

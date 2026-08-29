@@ -4,6 +4,7 @@ export type AgentRunOptions = {
   cwd: string;
   prompt: string;
   timeoutMs?: number;
+  env?: Record<string, string>;
   onStdout?: (chunk: string) => void;
   onStderr?: (chunk: string) => void;
 };
@@ -43,7 +44,7 @@ export async function runAgent(task: PlannedTask, options: AgentRunOptions): Pro
   const { cmd, args } = commandFor(task, options.prompt);
   let process: Bun.Subprocess;
   try {
-    process = Bun.spawn([cmd, ...args], { cwd: options.cwd, stdout: "pipe", stderr: "pipe" });
+    process = Bun.spawn([cmd, ...args], { cwd: options.cwd, env: options.env, stdout: "pipe", stderr: "pipe" });
   } catch (error) {
     return { exitCode: 127, stdout: "", stderr: error instanceof Error ? error.message : String(error) };
   }

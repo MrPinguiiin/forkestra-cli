@@ -26,7 +26,7 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 - [x] Dependency yang gagal membuat task downstream berstatus `skipped`.
 - [x] stdout/stderr agent tersimpan di `task_log` dan dapat ditampilkan secara live.
 - [x] `forkestra status` menampilkan run dan task terbaru.
-- [-] `forkestra tui` menampilkan status dan log, bukan placeholder.
+- [x] `forkestra tui` menampilkan status dan log, bukan placeholder.
 - [x] Preset agent/model dapat disimpan, dibaca, dan digunakan saat planning/execution.
 - [x] Model dinamis dapat diambil dari tool CLI jika tersedia.
 - [x] Lint, typecheck, build, dan test berjalan sukses.
@@ -78,15 +78,15 @@ File utama: `packages/core/src/parser.ts`.
 - [x] Verifikasi extraction heading level 1–3.
 - [x] Verifikasi extraction content antar-heading.
 - [x] Verifikasi nested heading tidak menghilangkan content parent secara tidak sengaja.
-- [ ] Tambahkan test untuk heading tunggal.
-- [ ] Tambahkan test untuk nested heading.
-- [ ] Tambahkan test untuk content kosong.
-- [ ] Tambahkan test untuk karakter khusus pada slug.
+- [x] Tambahkan test untuk heading tunggal.
+- [x] Tambahkan test untuk nested heading.
+- [x] Tambahkan test untuk content kosong.
+- [x] Tambahkan test untuk karakter khusus pada slug.
 
 Acceptance criteria:
 
-- [ ] Output selalu berupa `SpecDocument` yang valid atau error actionable.
-- [ ] Parser tidak bergantung pada format whitespace tertentu.
+- [x] Output selalu berupa `SpecDocument` yang valid atau error actionable.
+- [x] Parser tidak bergantung pada format whitespace tertentu.
 
 ## Phase 3 — Deterministic Planner v0
 
@@ -98,18 +98,18 @@ File utama: `packages/core/src/planner.ts`.
 - [x] Verifikasi fallback ke `shared`.
 - [x] Verifikasi hanya section actionable yang diproses.
 - [x] Verifikasi dependency frontend terhadap `API Contract`.
-- [ ] Tentukan apakah pencarian `API Contract` case-insensitive berdasarkan title saja atau title + slug.
+- [x] Tentukan pencarian `API Contract` case-insensitive berdasarkan title dan slug.
 - [x] Pastikan task ID stabil dan tidak bentrok.
 - [x] Pastikan branch name deterministic dari task ID.
 - [x] Pastikan custom preset dapat memengaruhi agent/model tanpa mengubah domain.
-- [ ] Tambahkan test planner untuk semua domain.
-- [ ] Tambahkan test planner untuk API Contract dependency.
-- [ ] Tambahkan test planner untuk custom preset.
+- [x] Tambahkan test planner untuk semua domain.
+- [x] Tambahkan test planner untuk API Contract dependency.
+- [x] Tambahkan test planner untuk custom preset.
 
 Acceptance criteria:
 
-- [ ] Input spec yang sama menghasilkan task, ID, dependency, agent, model, dan branch yang sama.
-- [ ] Tidak ada dependency ke task yang tidak ada.
+- [x] Input spec yang sama menghasilkan task, ID, dependency, agent, model, dan branch yang sama.
+- [x] Tidak ada dependency ke task yang tidak ada.
 
 ## Phase 4 — Agent dan Model Preset dari Database
 
@@ -127,12 +127,12 @@ Files utama: `packages/core/src/planner.ts`, `packages/db/src/schema/forkestra.t
 - [x] Tambahkan command untuk membuat atau memperbarui preset.
 - [x] Validasi JSON mapping dengan schema runtime.
 - [x] Tolak agent atau model kosong.
-- [ ] Tambahkan test preset persistence.
+- [x] Tambahkan test preset persistence.
 
 Acceptance criteria:
 
-- [ ] Preset dapat dibuat, dibaca, diubah, dan digunakan oleh run.
-- [ ] Run menyimpan agent/model final yang benar pada setiap task.
+- [x] Preset dapat dibuat, dibaca, diubah, dan digunakan oleh run.
+- [x] Run menyimpan agent/model final yang benar pada setiap task.
 
 ## Phase 5 — Dynamic Model Selector
 
@@ -146,13 +146,13 @@ Files utama: `packages/core/src/models.ts`, `packages/cli/src/index.ts`.
 - [x] Tambahkan command `forkestra config models`.
 - [x] Tambahkan filter `--agent <agent>`.
 - [x] Jangan menggagalkan planning hanya karena model discovery gagal.
-- [ ] Tambahkan test parsing output model.
-- [ ] Tambahkan test fallback model.
+- [x] Tambahkan test parsing output model.
+- [x] Tambahkan test fallback model.
 
 Acceptance criteria:
 
-- [ ] User dapat melihat model yang tersedia tanpa menjalankan task agent.
-- [ ] Kegagalan discovery menghasilkan warning yang jelas dan fallback aman.
+- [x] User dapat melihat model yang tersedia tanpa menjalankan task agent.
+- [x] Kegagalan discovery menghasilkan warning yang jelas dan fallback aman.
 
 ## Phase 6 — Scheduler Dependency, Skip, Retry, dan Concurrency
 
@@ -171,18 +171,18 @@ File utama: `packages/core/src/scheduler.ts`.
 - [x] Jangan retry bila task dibatalkan atau dependency gagal.
 - [x] Simpan attempt number dan error terakhir.
 - [x] Tambahkan duration pada hasil scheduler.
-- [ ] Tambahkan test parallel execution.
-- [ ] Tambahkan test dependency ordering.
-- [ ] Tambahkan test failure propagation.
-- [ ] Tambahkan test cycle detection.
-- [ ] Tambahkan test retry.
-- [ ] Tambahkan test concurrency limit.
+- [x] Tambahkan test parallel execution.
+- [x] Tambahkan test dependency ordering.
+- [x] Tambahkan test failure propagation.
+- [x] Tambahkan test cycle detection.
+- [x] Tambahkan test retry.
+- [x] Tambahkan test concurrency limit.
 
 Acceptance criteria:
 
-- [ ] Scheduler tidak menggantung pada dependency failure atau cycle.
-- [ ] Jumlah task aktif tidak melebihi limit.
-- [ ] Hasil scheduler lengkap: completed, failed, skipped.
+- [x] Scheduler tidak menggantung pada dependency failure atau cycle.
+- [x] Jumlah task aktif tidak melebihi limit.
+- [x] Hasil scheduler lengkap: completed, failed, skipped.
 
 ## Phase 7 — Agent Runner Hardening
 
@@ -199,14 +199,14 @@ File utama: `packages/core/src/agent-runner.ts`, `packages/core/src/validation.t
 - [x] Pastikan stdout dan stderr tetap dibaca sampai process selesai.
 - [x] Pastikan callback log tidak kehilangan chunk.
 - [x] Verifikasi validasi binary dengan `which`.
-- [ ] Tambahkan unit test command construction.
-- [ ] Tambahkan unit test timeout.
-- [ ] Tambahkan unit test stream callbacks.
+- [x] Tambahkan unit test command construction.
+- [x] Tambahkan unit test timeout.
+- [x] Tambahkan unit test stream callbacks.
 
 Acceptance criteria:
 
-- [ ] Agent tidak bisa berjalan jika binary wajib tidak tersedia.
-- [ ] Timeout dan exit failure tersimpan sebagai hasil task yang dapat ditindaklanjuti.
+- [x] Agent tidak bisa berjalan jika binary wajib tidak tersedia.
+- [x] Timeout dan exit failure tersimpan sebagai hasil task yang dapat ditindaklanjuti.
 
 ## Phase 8 — Git Worktree Automation
 
@@ -226,12 +226,12 @@ File utama: `packages/core/src/git-worktree.ts`, `packages/core/src/scheduler.ts
 - [x] Jangan membuat empty commit.
 - [x] Tangani commit failure tanpa menghapus hasil task.
 - [x] Tambahkan test path generation.
-- [ ] Tambahkan test empty commit behavior.
+- [x] Tambahkan test empty commit behavior.
 
 Acceptance criteria:
 
-- [ ] Setiap task yang dieksekusi dengan `--worktree` memiliki branch dan folder terisolasi.
-- [ ] Hasil task dapat direview melalui branch tersebut.
+- [x] Setiap task yang dieksekusi dengan `--worktree` memiliki branch dan folder terisolasi.
+- [x] Hasil task dapat direview melalui branch tersebut.
 
 ## Phase 9 — Result Collector dan Project Checks
 
@@ -301,8 +301,8 @@ Files utama: `apps/server/src/index.ts`, `packages/api/src/routers/index.ts`.
 
 Acceptance criteria:
 
-- [ ] Dashboard future dapat mengambil run, task, status, dan log tanpa akses langsung ke DB.
-- [ ] Query tidak mengembalikan data tidak terbatas.
+- [x] Dashboard future dapat mengambil run, task, status, dan log tanpa akses langsung ke DB.
+- [x] Query tidak mengembalikan data tidak terbatas.
 
 ## Phase 12 — Optional PR Creation
 
@@ -321,8 +321,8 @@ File utama: `packages/core/src/pr.ts`.
 
 Acceptance criteria:
 
-- [ ] PR hanya dibuat atas permintaan eksplisit user.
-- [ ] URL PR tercatat pada summary task/run.
+- [x] PR hanya dibuat atas permintaan eksplisit user.
+- [x] URL PR tercatat pada summary task/run.
 
 ## Phase 13 — Test Suite Lengkap
 
@@ -380,10 +380,10 @@ Acceptance criteria:
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
 - Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
-- Test suite: 52 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, isolated CLI dry-run/database persistence, PR helpers, and worktree path behavior.
+- Test suite: 75 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, isolated CLI dry-run/preset/database persistence, PR helpers, and worktree path behavior.
 - Not implemented: the full integration/CLI test matrix.
 - Implemented this pass: persisted attempts/exit code/duration/check status, commit failure handling, GitHub PR creation via explicit `--create-pr`, task metadata PR URL, task summary reporting, and provider-specific concurrency limits.
-- Verification: `bun test` passes 52 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
+- Verification: `bun test` passes 75 tests; `bun run lint`, `bun run check-types`, and `bun run build` pass.
 - Known issue: the existing SQLite/Turso migration set does not require a new migration for the enum-like text status change.
 
 ## Final Verification Gate
@@ -399,8 +399,8 @@ Jalankan setelah seluruh phase yang dipilih selesai:
 - [x] `bun packages/cli/src/index.ts status`
 - [x] `bun packages/cli/src/index.ts config`
 - [x] Verifikasi execution dengan fixture agent atau mock executor.
-- [ ] Verifikasi execution dengan `--worktree` pada fixture repository.
-- [ ] Verifikasi stdout/stderr tersimpan di `task_log`.
+- [x] Verifikasi execution dengan `--worktree` pada fixture repository.
+- [x] Verifikasi stdout/stderr tersimpan di `task_log`.
 - [x] Verifikasi task dependency failure menghasilkan downstream `skipped`.
 - [x] Verifikasi summary report lengkap.
 - [x] Verifikasi tidak ada secret atau credential yang masuk ke log, commit, atau dokumentasi.

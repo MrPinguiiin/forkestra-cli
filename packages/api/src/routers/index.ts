@@ -12,8 +12,8 @@ export const appRouter = router({
   runs: publicProcedure.query(() => {
     return db.select().from(run).orderBy(desc(run.createdAt)).limit(20);
   }),
-  tasksByRun: publicProcedure.input(z.object({ runId: z.string().min(1) })).query(({ input }) => {
-    return db.select().from(task).where(eq(task.runId, input.runId));
+  tasksByRun: publicProcedure.input(z.object({ runId: z.string().min(1), limit: z.number().int().min(1).max(100).default(100) })).query(({ input }) => {
+    return db.select().from(task).where(eq(task.runId, input.runId)).limit(input.limit);
   }),
   runById: publicProcedure.input(z.object({ runId: z.string().min(1) })).query(({ input }) => {
     return db.select().from(run).where(eq(run.id, input.runId)).limit(1).then(([item]) => {

@@ -42,4 +42,39 @@ describe("CLI integration", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  test("persists, reads, updates, and lists a custom preset", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "forkestra-preset-"));
+    const database = join(directory, "test.db");
+    await cp(sourceDatabase, database);
+    const env = { ...Bun.env, DATABASE_URL: `file:${database}`, DATABASE_AUTH_TOKEN: "" };
+    const mapping = JSON.stringify({
+      frontend: { agent: "codex", model: "frontend-v1" },
+      backend: { agent: "claude-code", model: "backend-v1" },
+      shared: { agent: "opencode", model: "shared-v1" },
+      qa: { agent: "codex", model: "qa-v1" },
+    });
+    try {
+      const save = Bun.spawn(["bun", cliPath, "config", "preset", "custom-test", "--set", mapping], { cwd: repoRoot, env, stdout: "pipe", stderr: "pipe" });
+      expect(await save.exited).toBe(0);
+      const read = Bun.spawn(["bun", cliPath, "config", "preset", "custom-test"], { cwd: repoRoot, env, stdout: "pipe", stderr: "pipe" });
+      const readOutput = await new Response(read.stdout).text();
+      expect(await read.exited).toBe(0);
+      expect(readOutput).toContain("frontend-v1");
+      const updateMapping = mapping.replace("frontend-v1", "frontend-v2");
+      const update = Bun.spawn(["bun", cliPath, "config", "preset", "custom-test", "--set", updateMapping], { cwd: repoRoot, env, stdout: "pipe", stderr: "pipe" });
+      expect(await update.exited).toBe(0);
+      await writeFile(join(directory, "preset-spec.md"), "# Frontend\n\nBuild the UI.\n", "utf8");
+      const run = Bun.spawn(["bun", cliPath, "run", join(directory, "preset-spec.md"), "--dry-run", "--preset", "custom-test"], { cwd: repoRoot, env, stdout: "pipe", stderr: "pipe" });
+      expect(await run.exited).toBe(0);
+      const runTask = new Database(database).query("select agent, model from task order by rowid desc limit 1;").get() as { agent: string; model: string };
+      expect(runTask).toEqual({ agent: "codex", model: "frontend-v2" });
+      const list = Bun.spawn(["bun", cliPath, "config", "presets"], { cwd: repoRoot, env, stdout: "pipe", stderr: "pipe" });
+      const listOutput = await new Response(list.stdout).text();
+      expect(await list.exited).toBe(0);
+      expect(listOutput).toContain("custom-test");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });

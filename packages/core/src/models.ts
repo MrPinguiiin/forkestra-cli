@@ -13,6 +13,10 @@ const binaries: Record<AgentTool, string> = {
   opencode: "opencode",
 };
 
+export function parseModelOutput(output: string): string[] {
+  return output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
 export async function listModelsForAgent(agent: AgentTool): Promise<{ models: string[]; warning?: string }> {
   if (agent !== "opencode") return { models: fallbackModels[agent] };
   let process: Bun.Subprocess;
@@ -29,6 +33,6 @@ export async function listModelsForAgent(agent: AgentTool): Promise<{ models: st
   if (exitCode !== 0) {
     return { models: fallbackModels[agent], warning: stderr.trim() || "Unable to discover OpenCode models" };
   }
-  const models = stdout.split("\n").map((line) => line.trim()).filter(Boolean);
+  const models = parseModelOutput(stdout);
   return models.length > 0 ? { models } : { models: fallbackModels[agent], warning: "OpenCode returned no models" };
 }
