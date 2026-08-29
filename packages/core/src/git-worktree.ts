@@ -38,6 +38,9 @@ export async function removeWorktree(path: string, repoPath: string) {
 }
 
 export async function commitTaskResult(task: PlannedTask, worktreePath: string) {
+  const changes = await runGit(["status", "--porcelain"], worktreePath);
+  if (!changes) return false;
   await runGit(["add", "."], worktreePath);
   await runGit(["commit", "-m", `feat: complete ${task.id}`], worktreePath);
+  return true;
 }

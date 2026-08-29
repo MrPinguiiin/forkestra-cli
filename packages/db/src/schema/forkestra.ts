@@ -6,7 +6,7 @@ export const run = sqliteTable("run", {
     .primaryKey()
     .default(sql`(lower(hex(randomblob(16))))`),
   specPath: text("spec_path").notNull(),
-  status: text("status", { enum: ["pending", "running", "completed", "failed", "cancelled"] })
+  status: text("status", { enum: ["pending", "running", "completed", "failed", "cancelled", "skipped"] })
     .notNull()
     .default("pending"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -29,7 +29,7 @@ export const task = sqliteTable(
     description: text("description"),
     agent: text("agent"),
     model: text("model"),
-    status: text("status", { enum: ["pending", "running", "completed", "failed", "cancelled"] })
+    status: text("status", { enum: ["pending", "running", "completed", "failed", "cancelled", "skipped"] })
       .notNull()
       .default("pending"),
     worktreePath: text("worktree_path"),

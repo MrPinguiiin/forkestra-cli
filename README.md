@@ -50,6 +50,18 @@ Create a run and persist tasks:
 bun packages/cli/src/index.ts run docs/DESIGN.md
 ```
 
+Validate the execution schedule without calling agents:
+
+```bash
+bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run
+```
+
+Execute agents, optionally with isolated worktrees:
+
+```bash
+bun packages/cli/src/index.ts run docs/DESIGN.md --execute --worktree --repo /path/to/project --workspace-root /path/to/worktrees
+```
+
 Show recent runs:
 
 ```bash

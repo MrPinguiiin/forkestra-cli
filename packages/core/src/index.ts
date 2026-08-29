@@ -2,4 +2,8 @@ export * from "./agent-runner";
 export * from "./git-worktree";
 export * from "./parser";
 export * from "./planner";
+export * from "./models";
+export * from "./project-checks";
+export * from "./scheduler";
 export * from "./types";
+export * from "./validation";

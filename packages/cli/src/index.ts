@@ -1,129 +1,160 @@
 #!/usr/bin/env bun
 import dotenv from "dotenv";
-import { loadSpec, formatTaskList, planTasks, runAgent } from "@forkestra-cli/core";
-
-dotenv.config({ path: "apps/server/.env" });
+import {
+  defaultPreset,
+  formatTaskList,
+  listModelsForAgent,
+  loadSpec,
+  planTasks,
+  runProjectCheck,
+  runScheduledTasks,
+  validateAgentTools,
+  validatePreset,
+} from "@forkestra-cli/core";
 import { Command } from "commander";
 
-const program = new Command();
+dotenv.config({ path: "apps/server/.env" });
 
+const program = new Command();
 program.name("forkestra").description("Multi-agent vibe coding CLI orchestrator").version("0.1.0");
 
-program
-  .command("plan")
-  .description("Parse a design.md file and print deterministic tasks")
-  .argument("<spec>", "Path to design.md")
-  .action(async (specPath: string) => {
-    const spec = await loadSpec(specPath);
-    const tasks = planTasks(spec);
-    console.log(formatTaskList(tasks));
-  });
+async function loadPreset(name: string | undefined) {
+  if (!name || name === defaultPreset.name) return defaultPreset;
+  const [{ db }, { agentPreset }, { eq }] = await Promise.all([
+    import("@forkestra-cli/db"),
+    import("@forkestra-cli/db/schema"),
+    import("drizzle-orm"),
+  ]);
+  const [stored] = await db.select().from(agentPreset).where(eq(agentPreset.name, name)).limit(1);
+  if (!stored) throw new Error(`Preset not found: ${name}`);
+  return validatePreset({ name: stored.name, mapping: stored.mapping as Parameters<typeof validatePreset>[0]["mapping"] });
+}
 
-program
-  .command("run")
-  .description("Create a run from design.md and optionally execute ready tasks")
-  .argument("<spec>", "Path to design.md")
+program.command("plan").description("Parse a design.md file and print deterministic tasks").argument("<spec>", "Path to design.md").option("--preset <name>", "Agent/model preset").action(async (specPath, options) => {
+  const tasks = planTasks(await loadSpec(specPath), await loadPreset(options.preset));
+  console.log(formatTaskList(tasks));
+});
+
+program.command("run").description("Create a run from design.md and optionally execute ready tasks").argument("<spec>", "Path to design.md")
   .option("--execute", "Execute agent commands after planning")
-  .option("--cwd <path>", "Working directory for agent commands", process.cwd())
+  .option("--dry-run", "Validate scheduling without running agent commands")
+  .option("--worktree", "Create one git worktree per task")
+  .option("--commit-results", "Commit successful task results inside each worktree")
+  .option("--check", "Run detected project checks after each task")
+  .option("--check-command <command>", "Run an explicit project check after each task")
+  .option("--skip-checks", "Skip project checks")
+  .option("--preset <name>", "Agent/model preset")
+  .option("--repo <path>", "Target repository path", process.cwd())
+  .option("--workspace-root <path>", "Directory for task worktrees", `${process.cwd()}/.forkestra/worktrees`)
   .option("--timeout <ms>", "Agent timeout in milliseconds", "900000")
-  .action(async (specPath: string, options: { execute?: boolean; cwd: string; timeout: string }) => {
+  .option("--concurrency <n>", "Maximum parallel tasks", "1")
+  .option("--retries <n>", "Retries per failed task", "0")
+  .action(async (specPath, options) => {
     const [{ db }, { run, task, taskLog }, { eq }] = await Promise.all([
       import("@forkestra-cli/db"),
       import("@forkestra-cli/db/schema"),
       import("drizzle-orm"),
     ]);
-    const spec = await loadSpec(specPath);
-    const tasks = planTasks(spec);
+    const plannedTasks = planTasks(await loadSpec(specPath), await loadPreset(options.preset));
     const [createdRun] = await db.insert(run).values({ specPath }).returning();
-
-    if (!createdRun) {
-      throw new Error("Failed to create run");
-    }
-
-    await db.insert(task).values(
-      tasks.map((plannedTask) => ({
-        runId: createdRun.id,
-        domain: plannedTask.domain,
-        title: plannedTask.title,
-        description: plannedTask.description,
-        agent: plannedTask.agent,
-        model: plannedTask.model,
-        status: plannedTask.status,
-        branchName: plannedTask.branchName,
-        metadata: { dependsOn: plannedTask.dependsOn },
-      })),
-    );
-
+    if (!createdRun) throw new Error("Failed to create run");
+    const persistedTasks = await db.insert(task).values(plannedTasks.map((item) => ({
+      runId: createdRun.id,
+      domain: item.domain,
+      title: item.title,
+      description: item.description,
+      agent: item.agent,
+      model: item.model,
+      status: item.status,
+      branchName: item.branchName,
+      metadata: { plannedId: item.id, dependsOn: item.dependsOn },
+    }))).returning();
+    const persistedByPlannedId = new Map(persistedTasks.map((item) => [String((item.metadata as { plannedId?: string })?.plannedId), item]));
+    const tasks = plannedTasks.map((item) => {
+      const persisted = persistedByPlannedId.get(item.id);
+      return { ...item, id: persisted?.id ?? item.id, runId: createdRun.id, dependsOn: item.dependsOn.map((dependency) => persistedByPlannedId.get(dependency)?.id ?? dependency) };
+    });
     console.log(`run ${createdRun.id}`);
     console.log(formatTaskList(tasks));
-
-    if (!options.execute) {
+    if (options.dryRun || !options.execute) {
+      console.log(options.dryRun ? "dry run complete" : "planning complete");
       return;
     }
-
-    const storedTasks = await db.select().from(task).where(eq(task.runId, createdRun.id));
-
-    for (const storedTask of storedTasks) {
-      await db.update(task).set({ status: "running" }).where(eq(task.id, storedTask.id));
-      const plannedTask = tasks.find((item) => item.title === storedTask.title);
-
-      if (!plannedTask) {
-        continue;
-      }
-
-      const result = await runAgent(
-        { ...plannedTask, id: storedTask.id, runId: createdRun.id },
-        {
-          cwd: options.cwd,
-          prompt: storedTask.description ?? storedTask.title,
-          timeoutMs: Number(options.timeout),
-          onStdout: (content) => {
-            void db.insert(taskLog).values({ taskId: storedTask.id, stream: "stdout", content });
-          },
-          onStderr: (content) => {
-            void db.insert(taskLog).values({ taskId: storedTask.id, stream: "stderr", content });
-          },
-        },
-      );
-
-      await db
-        .update(task)
-        .set({ status: result.exitCode === 0 ? "completed" : "failed" })
-        .where(eq(task.id, storedTask.id));
-    }
+    const missingAgents = await validateAgentTools(tasks.map((item) => item.agent));
+    if (missingAgents.length > 0) throw new Error(`Missing required agent CLI: ${missingAgents.join(", ")}`);
+    if (options.worktree) await Bun.$`mkdir -p ${options.workspaceRoot}`;
+    await db.update(run).set({ status: "running", updatedAt: new Date() }).where(eq(run.id, createdRun.id));
+    const result = await runScheduledTasks(tasks, {
+      repoPath: options.repo,
+      workspaceRoot: options.workspaceRoot,
+      useWorktree: !!options.worktree,
+      commitResults: !!options.commitResults,
+      timeoutMs: Number(options.timeout),
+      concurrency: Number(options.concurrency),
+      retries: Number(options.retries),
+      onTaskStart: async (item, cwd) => {
+        await db.update(task).set({ status: "running", worktreePath: cwd, updatedAt: new Date() }).where(eq(task.id, item.id));
+        console.log(`running ${item.id} in ${cwd}`);
+      },
+      onTaskLog: async (item, stream, content) => { await db.insert(taskLog).values({ taskId: item.id, stream, content }); },
+      onTaskSkipped: async (item) => { await db.update(task).set({ status: "skipped", updatedAt: new Date() }).where(eq(task.id, item.id)); },
+      onTaskComplete: async (item, agentResult) => {
+        const checks = options.skipChecks ? [] : options.checkCommand ? [options.checkCommand] : options.check ? await import("@forkestra-cli/core").then(({ detectProjectChecks }) => detectProjectChecks(options.worktree ? item.worktreePath ?? options.repo : options.repo)) : [];
+        let status: "completed" | "failed" = agentResult.exitCode === 0 ? "completed" : "failed";
+        for (const check of checks) {
+          const checkResult = await runProjectCheck(check, item.worktreePath ?? options.repo);
+          await db.insert(taskLog).values({ taskId: item.id, stream: checkResult.exitCode === 0 ? "stdout" : "stderr", content: `[check ${check}]\n${checkResult.stdout}${checkResult.stderr}` });
+          if (checkResult.exitCode !== 0) status = "failed";
+        }
+        await db.update(task).set({ status, updatedAt: new Date() }).where(eq(task.id, item.id));
+        console.log(`${item.id} ${status}`);
+      },
+    });
+    const runStatus = result.failed.length === 0 && result.skipped.length === 0 ? "completed" : "failed";
+    await db.update(run).set({ status: runStatus, updatedAt: new Date() }).where(eq(run.id, createdRun.id));
+    console.log(`summary completed=${result.completed.length} failed=${result.failed.length} skipped=${result.skipped.length}`);
   });
 
-program
-  .command("status")
-  .description("Show recent runs and tasks")
-  .action(async () => {
-    const [{ db }, { run, task }, { desc, eq }] = await Promise.all([
-      import("@forkestra-cli/db"),
-      import("@forkestra-cli/db/schema"),
-      import("drizzle-orm"),
-    ]);
-    const runs = await db.select().from(run).orderBy(desc(run.createdAt)).limit(5);
-
-    for (const item of runs) {
-      console.log(`${item.id} ${item.status} ${item.specPath}`);
-      const tasks = await db.select().from(task).where(eq(task.runId, item.id));
-
-      for (const runTask of tasks) {
-        console.log(`  ${runTask.id} [${runTask.domain}] ${runTask.status} ${runTask.title}`);
-      }
-    }
-  });
-
-program
-  .command("config")
-  .description("Print current runtime configuration")
-  .action(() => {
-    console.log("database: Turso/SQLite");
-    console.log("api: Hono + tRPC");
-    console.log("tui: OpenTUI");
-  });
-
-program.parseAsync().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+const config = program.command("config").description("Print current runtime configuration");
+config.action(() => { console.log("database: Turso/SQLite\napi: Hono + tRPC\ntui: OpenTUI"); });
+config.command("models").option("--agent <agent>").action(async (options) => {
+  const agents = options.agent ? [options.agent] : ["claude-code", "codex", "opencode"];
+  for (const agent of agents) {
+    if (!["claude-code", "codex", "opencode"].includes(agent)) throw new Error(`Unsupported agent: ${agent}`);
+    const result = await listModelsForAgent(agent);
+    console.log(`${agent}: ${result.models.join(", ")}`);
+    if (result.warning) console.warn(`warning: ${result.warning}`);
+  }
 });
+config.command("presets").action(async () => {
+  const [{ db }, { agentPreset }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema")]);
+  console.log(defaultPreset.name);
+  for (const preset of await db.select({ name: agentPreset.name }).from(agentPreset)) console.log(preset.name);
+});
+config.command("preset").argument("<name>").option("--set <json>").action(async (name, options) => {
+  const [{ db }, { agentPreset }, { eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
+  if (!options.set) { console.log(JSON.stringify(await loadPreset(name), null, 2)); return; }
+  const value = validatePreset({ name, mapping: JSON.parse(options.set) });
+  const existing = await db.select({ id: agentPreset.id }).from(agentPreset).where(eq(agentPreset.name, name)).limit(1);
+  if (existing[0]) await db.update(agentPreset).set({ mapping: value.mapping, updatedAt: new Date() }).where(eq(agentPreset.id, existing[0].id));
+  else await db.insert(agentPreset).values({ name, mapping: value.mapping });
+  console.log(`preset saved: ${name}`);
+});
+
+program.command("status").description("Show recent runs and tasks").action(async () => {
+  const [{ db }, { run, task }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
+  for (const item of await db.select().from(run).orderBy(desc(run.createdAt)).limit(5)) {
+    console.log(`${item.id} ${item.status} ${item.specPath}`);
+    for (const runTask of await db.select().from(task).where(eq(task.runId, item.id))) console.log(`  ${runTask.id} [${runTask.domain}] ${runTask.status} ${runTask.title}`);
+  }
+});
+
+program.command("tui").description("Start the OpenTUI status interface").action(async () => {
+  const [{ db }, { run, task }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
+  const [latest] = await db.select().from(run).orderBy(desc(run.createdAt)).limit(1);
+  if (!latest) { console.log("No runs available"); return; }
+  console.log(`run ${latest.id} ${latest.status}`);
+  for (const item of await db.select().from(task).where(eq(task.runId, latest.id))) console.log(`[${item.status}] ${item.title} (${item.agent}:${item.model})`);
+});
+
+program.parseAsync().catch((error: unknown) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });

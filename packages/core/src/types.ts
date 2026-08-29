@@ -12,7 +12,7 @@ export type SpecDocument = {
 };
 
 export type TaskDomain = "frontend" | "backend" | "shared" | "qa";
-export type TaskStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type TaskStatus = "pending" | "running" | "completed" | "failed" | "cancelled" | "skipped";
 export type AgentTool = "claude-code" | "codex" | "opencode";
 
 export type PlannedTask = {

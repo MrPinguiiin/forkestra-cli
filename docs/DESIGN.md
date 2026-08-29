@@ -65,7 +65,10 @@ Commander.js menyediakan command utama:
 
 - `forkestra plan <design.md>`: parse spec dan tampilkan task.
 - `forkestra run <design.md>`: buat run/task di DB; optional execute agent.
+- `forkestra run <design.md> --dry-run`: validasi planning dan scheduling tanpa memanggil agent.
+- `forkestra run <design.md> --execute --worktree`: jalankan agent dengan worktree terisolasi.
 - `forkestra status`: tampilkan run/task terakhir.
+- `forkestra tui`: placeholder entrypoint untuk OpenTUI status interface.
 - `forkestra config`: tampilkan konfigurasi runtime.
 
 ### 4.2 Parser / Loader
@@ -94,10 +97,13 @@ Commander.js menyediakan command utama:
 
 ### 4.5 Scheduler / Dispatcher
 
-- Membuat git worktree per task:
+- Menerima daftar task dan menghitung dependency graph.
+- Task tanpa dependency dijalankan paralel (`Promise.all` per batch).
+- Task dengan dependency dijalankan setelah dependency-nya selesai.
+- Jika dependency gagal, task downstream di-skip.
+- Membuat git worktree per task jika `--worktree` diaktifkan:
   - `git worktree add <workspace>/task-<id> -b feature/<task-id>`
-- Menjalankan task dependency-free terlebih dahulu.
-- Task yang memiliki dependency dijalankan setelah dependency selesai.
+- Menjalankan validasi CLI tools sebelum eksekusi via `which`.
 
 ### 4.6 Agent Runner
 
