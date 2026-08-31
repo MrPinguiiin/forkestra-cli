@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatStatusSnapshot } from "../src/status-stream";
+import { formatLogPane, formatStatusSnapshot, formatTaskPane } from "../src/status-stream";
 
 describe("status stream", () => {
   test("formats task status without relying on color", () => {
@@ -16,5 +16,12 @@ describe("status stream", () => {
     expect(output).toContain("[x] a Build");
     expect(output).toContain("[!] b Test");
     expect(output).toContain("[stderr] failed");
+  });
+
+  test("formats Codex-style task and log panes", () => {
+    const tasks = [{ id: "a", title: "Build", status: "running", agent: "opencode", model: "model" }];
+    expect(formatTaskPane(tasks, "a")).toContain("> [>] a Build");
+    expect(formatLogPane("a", ["stdout: ready"])).toBe("stdout: ready");
+    expect(formatLogPane(undefined)).toBe("No task selected");
   });
 });

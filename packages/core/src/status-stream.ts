@@ -14,15 +14,21 @@ export type StatusSnapshot = {
   logs?: string[];
 };
 
+export function statusMarker(status: string) {
+  return status === "completed" ? "[x]" : status === "failed" ? "[!]" : status === "skipped" ? "[-]" : status === "running" ? "[>]" : "[ ]";
+}
+
+export function formatTaskPane(tasks: StatusTask[], selectedTaskId?: string) {
+  return tasks.map((task) => `${task.id === selectedTaskId ? ">" : " "} ${statusMarker(task.status)} ${task.id} ${task.title} (${task.agent ?? "unknown"}:${task.model ?? "unknown"})`).join("\n") || "No tasks";
+}
+
+export function formatLogPane(selectedTaskId: string | undefined, logs: string[] = []) {
+  if (!selectedTaskId) return "No task selected";
+  return logs.length > 0 ? logs.join("\n") : "No logs";
+}
+
 export function formatStatusSnapshot(snapshot: StatusSnapshot) {
-  const lines = [`run ${snapshot.runId} ${snapshot.runStatus}`, ""];
-  for (const task of snapshot.tasks) {
-    const marker = task.status === "completed" ? "[x]" : task.status === "failed" ? "[!]" : task.status === "skipped" ? "[-]" : task.status === "running" ? "[>]" : "[ ]";
-    lines.push(`${marker} ${task.id} ${task.title} (${task.agent ?? "unknown"}:${task.model ?? "unknown"})`);
-  }
-  if (snapshot.selectedTaskId) {
-    lines.push("", `logs ${snapshot.selectedTaskId}`);
-    lines.push(...(snapshot.logs ?? ["No logs"]));
-  }
+  const lines = [`run ${snapshot.runId} ${snapshot.runStatus}`, "", formatTaskPane(snapshot.tasks, snapshot.selectedTaskId)];
+  if (snapshot.selectedTaskId) lines.push("", `logs ${snapshot.selectedTaskId}`, formatLogPane(snapshot.selectedTaskId, snapshot.logs));
   return lines.join("\n");
 }

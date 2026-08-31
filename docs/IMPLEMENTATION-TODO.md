@@ -14,6 +14,7 @@ Checklist implementasi berdasarkan [`DESIGN.md`](./DESIGN.md). Update status set
 | Date | Phase | Summary | Owner |
 |---|---|---|---|
 | 2026-08-30 | Phase 0 | Baseline gate passed: lint, typecheck, build, 55 tests, deterministic plan, and dry-run verification. No baseline failures. Final gate commands: `bun run lint`, `bun run check-types`, `bun run build`, `bun test`, `bun packages/cli/src/index.ts plan docs/DESIGN.md`, `bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run`, plus `git diff --check`. | opencode |
+| 2026-08-30 | Phase 10 | Replaced the plain terminal refresh view with an OpenTUI renderer using task/log panes, keyboard selection, refresh handling, and safe terminal fallback. | opencode |
 | 2026-08-30 | Phase 0–14 | Added persisted execution metadata/check status, commit failure handling, explicit GitHub PR creation, worktree management, refreshing TUI status/logs, provider concurrency limits, and expanded unit coverage. Integration/CLI coverage remains pending. | opencode |
 
 ## Global Definition of Done
@@ -378,7 +379,7 @@ Acceptance criteria:
 ## Current Implementation Snapshot
 
 - Implemented: parser validation, deterministic planner IDs, API Contract dependency, preset loading/saving, dynamic OpenCode model discovery with fallbacks, dependency cycle detection, explicit downstream skip, retry count, global concurrency, agent timeout classification, project check detection, empty-commit protection, CLI config subcommands, and API read queries.
-- Partial: TUI now provides a database-backed refreshing status/log view with signal handling; keyboard navigation and full OpenTUI multi-pane rendering remain pending.
+- TUI: implemented with OpenTUI renderer, Codex/OpenCode-style header, task tree, task detail, live output panes, refresh loop, keyboard navigation, and terminal fallback.
 - Worktree hardening: repository validation, branch/path collision checks, cleanup flag, retry classification, and list/remove commands are implemented.
 - Test suite: 75 tests pass across parser, planner, scheduler/provider limits, agent command construction, project checks, model fallback, status formatting, result summaries, API/server endpoints, isolated CLI dry-run/preset/database persistence, PR helpers, and worktree path behavior.
 - Not implemented: the full integration/CLI test matrix.

@@ -12,10 +12,11 @@ import {
   pullRequestBody,
   removeWorktree,
   runProjectCheck,
-  formatStatusSnapshot,
   runScheduledTasks,
   validateAgentTools,
   validatePreset,
+  type AgentTool,
+  type PlannedTask,
 } from "@forkestra-cli/core";
 import { Command } from "commander";
 
@@ -203,42 +204,91 @@ program.command("status").description("Show recent runs and tasks").action(async
   }
 });
 
-program.command("tui").description("Start the OpenTUI status interface").option("--refresh <ms>", "Refresh interval", "1000").action(async (options) => {
-  const [{ db }, { run, task, taskLog }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
-  const [latest] = await db.select().from(run).orderBy(desc(run.createdAt)).limit(1);
-  if (!latest) { console.log("No runs available"); return; }
-  let selectedTaskId: string | undefined;
-  let selectedIndex = 0;
-  let running = true;
-  const stop = () => { running = false; };
-  process.once("SIGINT", stop);
-  process.once("SIGTERM", stop);
-  while (running) {
-    const tasks = await db.select().from(task).where(eq(task.runId, latest.id));
-    selectedIndex = Math.min(selectedIndex, Math.max(0, tasks.length - 1));
-    selectedTaskId = tasks[selectedIndex]?.id;
-    const logs = selectedTaskId ? await db.select().from(taskLog).where(eq(taskLog.taskId, selectedTaskId)).limit(20) : [];
-    process.stdout.write("\\x1b[2J\\x1b[H");
-    console.log(formatStatusSnapshot({ runId: latest.id, runStatus: latest.status, selectedTaskId, tasks, logs: logs.map((item) => `[${item.stream}] ${item.content}`) }));
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode?.(true);
-      process.stdin.resume();
-      const key = await new Promise<string>((resolve) => {
-        const onData = (data: Buffer) => { process.stdin.off("data", onData); resolve(data.toString()); };
-        process.stdin.once("data", onData);
-      });
-      process.stdin.setRawMode?.(false);
-      if (key === "q" || key === "\u0003" || key === "\u001b") stop();
-      if (key === "\u001b[A" || key === "k") selectedIndex = Math.max(0, selectedIndex - 1);
-      if (key === "\u001b[B" || key === "j") selectedIndex += 1;
-    } else {
-      await Bun.sleep(Math.max(100, Number(options.refresh)));
-    }
-    if (!running) break;
-    await Bun.sleep(Math.max(100, Number(options.refresh)));
+program.command("tui").description("Start the OpenTUI status interface").option("--refresh <ms>", "Refresh interval", "1000").action(async (_options) => {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log("TUI requires an interactive terminal; use forkestra status instead");
+    return;
   }
-  process.removeListener("SIGINT", stop);
-  process.removeListener("SIGTERM", stop);
+  const [{ db }, { run, task, taskLog }, { desc, eq }] = await Promise.all([import("@forkestra-cli/db"), import("@forkestra-cli/db/schema"), import("drizzle-orm")]);
+  const { BoxRenderable, TextRenderable, ScrollBoxRenderable, createCliRenderer } = await import("@opentui/core");
+  const { formatLogPane, formatTaskPane } = await import("@forkestra-cli/core");
+  let [currentRun] = await db.select().from(run).orderBy(desc(run.createdAt)).limit(1);
+  if (!currentRun) [currentRun] = await db.insert(run).values({ specPath: "tui-task-mode" }).returning();
+  if (!currentRun) throw new Error("Failed to create TUI run");
+  const activeRun = currentRun;
+  const renderer = await createCliRenderer({ exitOnCtrlC: false, clearOnShutdown: true, useMouse: true, autoFocus: false });
+  const screen = new BoxRenderable(renderer, { flexDirection: "column", width: "100%", height: "100%", padding: 1, gap: 1 });
+  const header = new BoxRenderable(renderer, { title: "Forkestra", border: true, height: 3 });
+  const headerText = new TextRenderable(renderer, { content: "Loading..." });
+  const body = new BoxRenderable(renderer, { flexDirection: "row", flexGrow: 1, gap: 1 });
+  const taskPane = new ScrollBoxRenderable(renderer, { title: "Tasks", border: true, width: "42%", scrollY: true, focusable: true });
+  const detailPane = new ScrollBoxRenderable(renderer, { title: "Task detail", border: true, flexGrow: 1, scrollY: true, focusable: true });
+  const logPane = new ScrollBoxRenderable(renderer, { title: "Live output", border: true, height: "38%", scrollY: true, focusable: true, stickyScroll: true, stickyStart: "bottom" });
+  const taskText = new TextRenderable(renderer, { content: "Loading..." });
+  const detailText = new TextRenderable(renderer, { content: "Loading..." });
+  const logText = new TextRenderable(renderer, { content: "Loading..." });
+  const commandPane = new BoxRenderable(renderer, { border: true, height: 3, title: "Command" });
+  const commandText = new TextRenderable(renderer, { content: "> " });
+  header.add(headerText); taskPane.add(taskText); detailPane.add(detailText); logPane.add(logText); commandPane.add(commandText);
+  body.add(taskPane); body.add(detailPane); screen.add(header); screen.add(body); screen.add(logPane); screen.add(commandPane); renderer.root.add(screen); renderer.start();
+  let selectedIndex = 0;
+  let command = "";
+  let taskMode = false;
+  let running = true;
+  let execution: Promise<void> | undefined;
+  let notice = "Type /help for commands";
+  const stop = () => { running = false; };
+  const refresh = () => renderer.requestRender();
+  const setNotice = (value: string) => { notice = value; commandText.content = `> ${command}\\n${value}`; refresh(); };
+  const taskRow = (event: { y: number }) => Math.max(0, Math.floor(event.y - taskPane.screenY - 1));
+  const scroll = (pane: { scrollBy: (delta: { x: number; y: number }) => void }, y: number) => pane.scrollBy({ x: 0, y });
+  taskPane.onMouseDown = (event) => { selectedIndex = taskRow(event); refresh(); };
+  taskPane.onMouseScroll = (event) => { scroll(taskPane, event.scroll?.direction === "up" ? -3 : 3); refresh(); };
+  logPane.onMouseScroll = (event) => { scroll(logPane, event.scroll?.direction === "up" ? -5 : 5); refresh(); };
+  detailPane.onMouseScroll = (event) => { scroll(detailPane, event.scroll?.direction === "up" ? -3 : 3); refresh(); };
+  process.once("SIGINT", stop); process.once("SIGTERM", stop);
+  const executeRun = async () => {
+    if (taskMode) { setNotice("Close task mode with /task close before /run"); return; }
+    if (execution) { setNotice("A run is already active"); return; }
+    const rows = await db.select().from(task).where(eq(task.runId, activeRun.id));
+    const byPlannedId = new Map(rows.map((row) => [String((row.metadata as { plannedId?: string } | null)?.plannedId ?? row.id), row.id]));
+    const planned: PlannedTask[] = rows.map((row) => ({ id: row.id, runId: row.runId ?? undefined, domain: row.domain, title: row.title, description: row.description ?? "", dependsOn: ((row.metadata as { dependsOn?: string[] } | null)?.dependsOn ?? []).map((id) => byPlannedId.get(id) ?? id), agent: (row.agent ?? "opencode") as AgentTool, model: row.model ?? "", status: row.status, branchName: row.branchName ?? `feature/${row.id}` }));
+    execution = (async () => {
+      await db.update(run).set({ status: "running", updatedAt: new Date() }).where(eq(run.id, activeRun.id));
+      const started = new Map<string, number>();
+      const result = await runScheduledTasks(planned, { repoPath: process.cwd(), workspaceRoot: `${process.cwd()}/.forkestra/worktrees`, useWorktree: false, commitResults: false, concurrency: 1,
+        onTaskStart: async (item, cwd) => { started.set(item.id, Date.now()); await db.update(task).set({ status: "running", worktreePath: cwd, updatedAt: new Date() }).where(eq(task.id, item.id)); },
+        onTaskAttempt: async (item, attempt) => { await db.update(task).set({ attemptCount: attempt, updatedAt: new Date() }).where(eq(task.id, item.id)); },
+        onTaskLog: async (item, stream, content) => { await db.insert(taskLog).values({ taskId: item.id, stream, content }); },
+        onTaskSkipped: async (item) => { await db.update(task).set({ status: "skipped", updatedAt: new Date() }).where(eq(task.id, item.id)); },
+        onTaskComplete: async (item, agentResult) => { await db.update(task).set({ status: agentResult.exitCode === 0 ? "completed" : "failed", exitCode: agentResult.exitCode, durationMs: Date.now() - (started.get(item.id) ?? Date.now()), updatedAt: new Date() }).where(eq(task.id, item.id)); },
+      });
+      await db.update(run).set({ status: result.failed.length || result.skipped.length ? "failed" : "completed", updatedAt: new Date() }).where(eq(run.id, activeRun.id));
+    })().catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error))).finally(() => { execution = undefined; });
+    setNotice("Run started");
+  };
+  const handleCommand = async (value: string) => {
+    const [name, ...args] = value.trim().split(/\\s+/);
+    if (name === "/help") setNotice("/cli <agent> [model] | /run | /task on|close|add|edit|delete");
+    else if (name === "/cli") { const agent = args[0]; if (!agent || !["claude-code", "codex", "opencode"].includes(agent)) setNotice("Usage: /cli claude-code|codex|opencode [model]"); else { const model = args[1] ?? (agent === "codex" ? "gpt-5.2" : agent === "claude-code" ? "claude-sonnet-4" : "anthropic/claude-sonnet-4"); await db.update(task).set({ agent: agent as AgentTool, model, updatedAt: new Date() }).where(eq(task.id, (await db.select().from(task).where(eq(task.runId, activeRun.id)))[selectedIndex]?.id ?? "")); setNotice(`CLI set to ${agent}:${model}`); } }
+    else if (name === "/run") await executeRun();
+    else if (name === "/task") { const action = args[0]; if (action === "on") { taskMode = true; setNotice("Task mode ON: /task add, /task edit, /task delete, /task close"); } else if (action === "close" || action === "off") { taskMode = false; setNotice("Task mode OFF"); } else if (!taskMode) setNotice("Enable task mode with /task on"); else { const rows = await db.select().from(task).where(eq(task.runId, activeRun.id)); const selected = rows[selectedIndex]; const payload = args.slice(1).join(" ").split("|").map((part) => part.trim()); if (action === "add" && payload[0] && payload[1] && payload[2]) { const [domain, title, description] = payload; await db.insert(task).values({ runId: activeRun.id, domain: domain as "frontend" | "backend" | "shared" | "qa", title, description, status: "pending", agent: "opencode", model: "anthropic/claude-sonnet-4", branchName: `feature/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` }); setNotice("Task added"); } else if (action === "edit" && selected && payload.length >= 2) { await db.update(task).set({ title: payload[0], description: payload[1], updatedAt: new Date() }).where(eq(task.id, selected.id)); setNotice("Task updated"); } else if (action === "delete" && selected) { await db.delete(task).where(eq(task.id, selected.id)); selectedIndex = Math.max(0, selectedIndex - 1); setNotice("Task deleted"); } else setNotice("Usage: add domain|title|description; edit title|description; delete"); } }
+    else if (value.trim()) setNotice("Unknown command; type /help");
+  };
+  while (running) {
+    const [freshRun] = await db.select().from(run).where(eq(run.id, activeRun.id)).limit(1); if (freshRun) currentRun = freshRun;
+    const tasks = await db.select().from(task).where(eq(task.runId, activeRun.id)); selectedIndex = Math.min(selectedIndex, Math.max(0, tasks.length - 1)); const selected = tasks[selectedIndex];
+    const logs = selected ? await db.select().from(taskLog).where(eq(taskLog.taskId, selected.id)).limit(200) : [];
+    headerText.content = `run ${activeRun.id}  status=${currentRun.status}  tasks=${tasks.length}  ${taskMode ? "[TASK MODE]" : ""}`;
+    taskText.content = formatTaskPane(tasks.map((item) => ({ id: item.id, title: item.title, status: item.status, agent: item.agent, model: item.model })), selected?.id);
+    detailText.content = selected ? [`id: ${selected.id}`, `status: ${selected.status}`, `domain: ${selected.domain}`, `agent: ${selected.agent ?? "unknown"}`, `model: ${selected.model ?? "unknown"}`, `branch: ${selected.branchName ?? "-"}`, `worktree: ${selected.worktreePath ?? "-"}`, "", taskMode ? "Task mode: edit commands only" : "Task mode is off"].join("\\n") : "No task selected";
+    logText.content = formatLogPane(selected?.id, logs.map((item) => `[${item.stream}] ${item.content}`)); commandText.content = `> ${command}\\n${notice}`; refresh();
+    process.stdin.setRawMode?.(true); process.stdin.resume();
+    const key = await new Promise<string>((resolve) => { const onData = (data: Buffer) => { process.stdin.off("data", onData); resolve(data.toString()); }; process.stdin.once("data", onData); });
+    process.stdin.setRawMode?.(false);
+    if (key === "q" || key === "\\u0003") stop(); else if (key === "\\u001b") { if (taskMode) { taskMode = false; setNotice("Task mode OFF"); } else stop(); } else if (key === "\\u001b[A" || key === "k") selectedIndex = Math.max(0, selectedIndex - 1); else if (key === "\\u001b[B" || key === "j") selectedIndex += 1; else if (key === "\\u001b[5~") scroll(logPane, -8); else if (key === "\\u001b[6~") scroll(logPane, 8); else if (key === "\\r" || key === "\\n") { const value = command; command = ""; await handleCommand(value); } else if (key === "\\u007f" || key === "\\b") command = command.slice(0, -1); else if (!key.startsWith("\\u001b") && key >= " ") command += key;
+  }
+  process.stdin.setRawMode?.(false); renderer.destroy(); process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop);
 });
 
 program.parseAsync().catch((error: unknown) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
