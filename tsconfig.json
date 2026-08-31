@@ -1,3 +1,0 @@
-{
-  "extends": "@forkestra-cli/config/tsconfig.base.json"
-}

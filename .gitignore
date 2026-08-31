@@ -1,19 +1,22 @@
-# Dependencies
-node_modules
-.pnp
-.pnp.js
+# Go dependencies and build outputs
+bin/
+/forkestra
+*.exe
+*.test
+*.out
+vendor/
 
-# Build outputs
-dist
-build
+# Legacy/tool caches that must never be tracked
+node_modules/
+.turbo/
 *.tsbuildinfo
-packages/cli/forkestra
-apps/server/server
 
-# Generated files
-apps/web/src/routeTree.gen.ts
+# Local database
 local.db
 local.db-*
+*.db
+*.db-shm
+*.db-wal
 
 # Environment variables
 .env

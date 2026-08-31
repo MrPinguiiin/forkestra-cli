@@ -1,156 +1,77 @@
-# forkestra-cli
+# Forkestra
 
-Forkestra CLI is a terminal-first multi-agent coding orchestrator. It parses a markdown spec, creates deterministic task plans, stores run state in Turso/SQLite, and can dispatch coding agents such as Claude Code, Codex CLI, and OpenCode.
+Forkestra is a cross-platform multi-agent coding orchestrator written entirely in Go. It uses Bubble Tea for the terminal UI and SQLite for local run/task state.
 
-## Stack
+## Requirements
 
-- **Runtime:** Bun
-- **CLI:** Commander.js
-- **TUI:** OpenTUI
-- **Optional API:** Hono + tRPC
-- **Database:** Turso/SQLite
-- **ORM:** Drizzle
-- **Markdown parser:** unified + remark-parse
-- **Monorepo:** Turborepo
-- **Linting:** Biome
+- Go 1.22 or newer
+- Git
+- Optional agent CLIs: `claude`, `codex`, or `opencode`
 
-## Getting Started
-
-Install dependencies:
+## Install and run
 
 ```bash
-bun install
+go build -o forkestra ./cmd/forkestra
+./forkestra tui
 ```
 
-Create or update `apps/server/.env`:
+On Windows:
+
+```powershell
+go build -o forkestra.exe ./cmd/forkestra
+.\forkestra.exe tui
+```
+
+The database defaults to `packages/db/local.db` for compatibility with existing local data. Override it with `DATABASE_URL`, for example:
 
 ```bash
-DATABASE_URL=file:/absolute/path/to/forkestra-cli/packages/db/local.db
-DATABASE_AUTH_TOKEN=
-CORS_ORIGIN=http://localhost:3000
+DATABASE_URL=/absolute/path/forkestra.db ./forkestra tui
 ```
 
-Apply the database schema:
+## Commands
 
 ```bash
-bun run db:push
+forkestra plan docs/DESIGN.md
+forkestra run docs/DESIGN.md --dry-run
+forkestra run docs/DESIGN.md --execute
+forkestra status
+forkestra tui
+forkestra config models
 ```
 
-## CLI Usage
+The Bubble Tea TUI supports keyboard navigation and a command input:
 
-Plan tasks from a spec file:
+- `/cli opencode [model]` changes the selected task's agent and model.
+- `/run` starts execution when task mode is closed.
+- `/task on` opens task mode.
+- `/task add <domain> <title> <description>` adds a task.
+- `/task edit <title> <description>` edits the selected task.
+- `/task delete` deletes the selected task.
+- `/task close` exits task mode.
+
+While task mode is active, execution is blocked. Press `q` or `Ctrl-C` to exit.
+
+## Development
 
 ```bash
-bun packages/cli/src/index.ts plan docs/DESIGN.md
+go test ./...
+go vet ./...
+go build ./cmd/forkestra
+GOOS=linux GOARCH=amd64 go build ./cmd/forkestra
+GOOS=windows GOARCH=amd64 go build ./cmd/forkestra
+GOOS=darwin GOARCH=arm64 go build ./cmd/forkestra
 ```
 
-Create a run and persist tasks:
-
-```bash
-bun packages/cli/src/index.ts run docs/DESIGN.md
-```
-
-Validate the execution schedule without calling agents:
-
-```bash
-bun packages/cli/src/index.ts run docs/DESIGN.md --dry-run
-```
-
-Execute agents, optionally with isolated worktrees:
-
-```bash
-bun packages/cli/src/index.ts run docs/DESIGN.md --execute --worktree --repo /path/to/project --workspace-root /path/to/worktrees
-```
-
-Show recent runs:
-
-```bash
-bun packages/cli/src/index.ts status
-```
-
-Show runtime config:
-
-```bash
-bun packages/cli/src/index.ts config
-```
-
-Compile the CLI binary:
-
-```bash
-bun run compile:cli
-```
-
-The binary is generated at:
-
-```bash
-packages/cli/forkestra
-```
-
-## Optional API Server
-
-Run the Hono/tRPC server:
-
-```bash
-bun run dev:server
-```
-
-Available tRPC procedures include:
-
-- `healthCheck`
-- `runs` (limited to the 20 most recent runs)
-- `tasksByRun`
-- `runById`
-- `taskLogsByTask` (limit 1–100, default 50)
-- `latestRun`
-- `runSummary`
-
-The HTTP health endpoint is `GET /`. CORS is configured by `CORS_ORIGIN`.
-
-Inspect the live terminal view with task selection using `j`/Down, `k`/Up, and exit with `q`, `Esc`, or Ctrl-C:
-
-```bash
-bun packages/cli/src/index.ts tui
-```
-
-## Project Structure
+## Project structure
 
 ```text
-forkestra-cli/
-├── apps/
-│   ├── fumadocs/      # Documentation app
-│   └── server/        # Optional Hono + tRPC API
-├── docs/
-│   └── DESIGN.md      # Product/architecture design source
-├── packages/
-│   ├── api/           # tRPC routers
-│   ├── cli/           # Commander CLI entrypoint
-│   ├── core/          # Parser, planner, agent runner, git worktree utils
-│   ├── db/            # Drizzle schema and migrations
-│   ├── env/           # Runtime env validation
-│   └── config/        # Shared TypeScript config
+cmd/forkestra/       CLI entrypoint
+internal/model/      Domain types
+internal/db/         SQLite persistence
+internal/planner/    Markdown task planner
+internal/runner/     Agent process runner
+internal/tui/        Bubble Tea interface
+docs/                Design and implementation documentation
+go.mod               Go dependencies
+go.sum               Dependency checksums
 ```
-
-## Available Scripts
-
-- `bun run dev`: Start all apps through Turborepo
-- `bun run build`: Build all apps/packages
-- `bun run lint`: Run Biome lint on source/config files
-- `bun run format`: Format source/config files with Biome
-- `bun run check-types`: Check TypeScript types
-- `bun run compile:cli`: Compile the CLI binary
-- `bun run compile:server`: Compile the server binary
-- `bun run dev:server`: Start only the API server
-- `bun run db:push`: Push schema changes to Turso/SQLite
-- `bun run db:generate`: Generate Drizzle migrations
-- `bun run db:migrate`: Run Drizzle migrations
-- `bun run db:studio`: Open Drizzle Studio
-- `bun run db:local`: Start local Turso dev database
-
-## Roadmap
-
-- v0.1: CLI planning, persisted runs, deterministic markdown planner
-- v0.2: Agent execution for Claude Code, Codex CLI, and OpenCode
-- v0.3: Git worktree automation and dependency-aware scheduling
-- v0.4: OpenTUI live progress UI
-- v0.5: Dynamic model selector and reusable presets
-- v1.0: PR creation, test integration, and run summary reports
